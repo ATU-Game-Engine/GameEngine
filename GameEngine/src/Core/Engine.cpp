@@ -470,7 +470,7 @@ int Start(void)
 
         if (physicsTime >= 1.0)
         {
-            std::cout << "Physics steps per second: " << physicsSteps << std::endl;
+            //std::cout << "Physics steps per second: " << physicsSteps << std::endl;
             physicsTime = 0.0;
             physicsSteps = 0;
         }

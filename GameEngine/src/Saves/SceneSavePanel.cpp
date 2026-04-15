@@ -30,14 +30,12 @@ void DrawSceneSaveLoadPanel(Scene& scene, EngineMode engineMode, DirectionalLigh
 
     ImGui::Begin("Scene Manager");
 
-    // Auto-load scene list once
-    static bool loadedOnce = false;
+    static bool needsRefresh = true;
 
     // We scan the scene directory once when panel first opens.
-    if (!loadedOnce)
+    if (needsRefresh)
     {
         sceneFiles.clear();
-
         if (std::filesystem::exists(sceneFolder))
         {
             for (auto& entry : std::filesystem::directory_iterator(sceneFolder))
@@ -49,7 +47,11 @@ void DrawSceneSaveLoadPanel(Scene& scene, EngineMode engineMode, DirectionalLigh
             }
         }
 
-        loadedOnce = true;
+        needsRefresh = false;
+    }
+    if (selectedIndex >= (int)sceneFiles.size())
+    {
+        selectedIndex = -1;
     }
 
     // =========================
@@ -184,6 +186,7 @@ void DrawSceneSaveLoadPanel(Scene& scene, EngineMode engineMode, DirectionalLigh
     if (ImGui::Button("Load Scene"))
     {
         std::string fullPath = sceneFolder + sceneFiles[selectedIndex] + ".json";
+        if (onClearSelections) onClearSelections();
         if (scene.loadFromFile(fullPath))
         {
             glm::vec3 dir, col;
@@ -192,6 +195,7 @@ void DrawSceneSaveLoadPanel(Scene& scene, EngineMode engineMode, DirectionalLigh
             light.setDirection(dir);
             light.setColor(col);
             light.setIntensity(intensity);
+            
         }
     }
 

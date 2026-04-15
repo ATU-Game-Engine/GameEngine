@@ -51,6 +51,11 @@
     <ClCompile Include="src\Testing\TestUI.cpp" />
     <ClCompile Include="src\UI\PointLightPanel.cpp" />
     <ClCompile Include="src\Rendering\PointLightRegistry.cpp" />
+    <ClCompile Include="src\UI\ConstraintCreatorPanel.cpp" />
+    <ClCompile Include="src\UI\ModelImporterPanel.cpp" />
+    <ClCompile Include="src\UI\LightingPanel.cpp" />
+    <ClCompile Include="src\UI\SpawnPanel.cpp" />
+    <ClCompile Include="src\UI\InspectorPanel.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="external\imgui\backends\imgui_impl_glfw.h" />
@@ -119,6 +124,12 @@
     <ClInclude Include="include\Physics\ForceGeneratorRegistry.h" />
     <ClInclude Include="include\UI\ForceGeneratorPanel.h" />
     <ClInclude Include="include\Testing\TestUI.h" />
+    <ClInclude Include="include\UI\PointLightPanel.h" />
+    <ClInclude Include="include\UI\ConstraintCreatorPanel.h" />
+    <ClInclude Include="include\UI\SpawnPanel.h" />
+    <ClInclude Include="include\UI\LightingPanel.h" />
+    <ClInclude Include="include\UI\ModelImporterPanel.h" />
+    <ClInclude Include="include\UI\InspectorPanel.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />

@@ -594,7 +594,9 @@ GameObject* Scene::loadAndSpawnModel(const std::string& filepath,
 
     // Store mesh in static cache
     static std::unordered_map<std::string, Mesh> loadedMeshes;
-    loadedMeshes[filepath] = std::move(loadedMesh);
+    if (loadedMeshes.find(filepath) == loadedMeshes.end()) {
+        loadedMeshes[filepath] = std::move(loadedMesh);
+    }
     Mesh* meshPtr = &loadedMeshes[filepath];
 
     GameObject* obj = nullptr;
@@ -1201,7 +1203,7 @@ bool Scene::loadFromFile(const std::string& path)
         std::cout << "Force generators loaded successfully" << std::endl;
     }
 
-
+    std::cout << "Applying transforms..." << std::endl;
     // --- Apply exact transforms to physics bodies (NO simulation) ---
     for (auto& obj : gameObjects)
     {
@@ -1211,7 +1213,7 @@ bool Scene::loadFromFile(const std::string& path)
             obj->getPhysics()->syncFromTransform(obj->getTransform());
         }
     }
-
+    std::cout << "Freezing bodies..." << std::endl;
     // --- Freeze everything so nothing moves ---
     for (auto& obj : gameObjects)
     {
@@ -1227,7 +1229,7 @@ bool Scene::loadFromFile(const std::string& path)
             }
         }
     }
-
+    std::cout << "loadFromFile complete." << std::endl;
     return true;
 }
 

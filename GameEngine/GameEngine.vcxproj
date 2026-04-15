@@ -138,8 +138,13 @@
     <ClCompile Include="src\Physics\ForceGeneratorRegistry.cpp" />
     <ClCompile Include="src\Rendering\PointLightRegistry.cpp" />
     <ClCompile Include="src\Testing\TestUI.cpp" />
+    <ClCompile Include="src\UI\ConstraintCreatorPanel.cpp" />
     <ClCompile Include="src\UI\ForceGeneratorPanel.cpp" />
+    <ClCompile Include="src\UI\InspectorPanel.cpp" />
+    <ClCompile Include="src\UI\LightingPanel.cpp" />
+    <ClCompile Include="src\UI\ModelImporterPanel.cpp" />
     <ClCompile Include="src\UI\PointLightPanel.cpp" />
+    <ClCompile Include="src\UI\SpawnPanel.cpp" />
     <ClCompile Include="src\UI\TriggerEditorPanel.cpp" />
     <ClCompile Include="src\Editor\Gizmo.cpp" />
     <ClCompile Include="src\Physics\Constraint.cpp" />
@@ -244,7 +249,12 @@
     <ClInclude Include="include\Physics\PhysicsMaterial.h" />
     <ClInclude Include="include\Scene\ScriptComponent.h" />
     <ClInclude Include="include\Testing\TestUI.h" />
+    <ClInclude Include="include\UI\ConstraintCreatorPanel.h" />
     <ClInclude Include="include\UI\ForceGeneratorPanel.h" />
+    <ClInclude Include="include\UI\InspectorPanel.h" />
+    <ClInclude Include="include\UI\LightingPanel.h" />
+    <ClInclude Include="include\UI\ModelImporterPanel.h" />
+    <ClInclude Include="include\UI\PointLightPanel.h" />
     <ClInclude Include="include\UI\Raycast.h" />
     <ClInclude Include="include\Scene\RenderComponent.h" />
     <ClInclude Include="include\Rendering\Renderer.h" />
@@ -254,6 +264,7 @@
     <ClInclude Include="include\Rendering\Texture.h" />
     <ClInclude Include="include\Scene\Transform.h" />
     <ClInclude Include="include\Scene\TransformComponent.h" />
+    <ClInclude Include="include\UI\SpawnPanel.h" />
     <ClInclude Include="include\UI\TriggerEditorPanel.h" />
   </ItemGroup>
   <ItemGroup>
