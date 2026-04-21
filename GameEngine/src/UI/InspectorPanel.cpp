@@ -1,6 +1,7 @@
 #include "../include/UI/InspectorPanel.h"
 #include "../include/Physics/Constraint.h"
 #include "../include/Physics/ConstraintRegistry.h"
+#include "../include/Physics/PhysicsMaterial.h"
 #include "../External/imgui/core/imgui.h"
 #include <glm/gtc/constants.hpp>
 #include <vector>
@@ -237,6 +238,65 @@ void DrawInspectorPanel(DebugUIContext& context)
         else
         {
             ImGui::TextDisabled("No textures found in textures/ folder");
+        }
+    }
+
+    // Physics Material
+    if (ImGui::CollapsingHeader("Physics Material") && context.selectedObject->hasPhysics())
+    {
+        btRigidBody* body = context.selectedObject->getRigidBody();
+        std::string currentMat = context.selectedObject->getMaterialName();
+
+        const auto& materials = context.physics.availableMaterials;
+        if (!materials.empty())
+        {
+            int selectedMatIdx = -1;
+            for (int i = 0; i < (int)materials.size(); i++)
+                if (materials[i] == currentMat) { selectedMatIdx = i; break; }
+
+            std::vector<const char*> matNames;
+            for (const auto& m : materials) matNames.push_back(m.c_str());
+
+            if (ImGui::Combo("Preset##InspMat", &selectedMatIdx,
+                matNames.data(), (int)matNames.size()))
+            {
+                const std::string& newMat = materials[selectedMatIdx];
+                const PhysicsMaterial& mat =
+                    MaterialRegistry::getInstance().getMaterial(newMat);
+
+                body->setFriction(mat.friction);
+                body->setRestitution(mat.restitution);
+                body->activate(true);
+                context.selectedObject->getPhysics()->setMaterialName(newMat);
+            }
+
+            if (selectedMatIdx >= 0)
+                ImGui::TextDisabled("Preset active: %s", currentMat.c_str());
+            else
+                ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.0f, 1.0f),
+                    "Custom override (no preset active)");
+        }
+
+        ImGui::Separator();
+        ImGui::Text("Active Friction:    %.3f", body->getFriction());
+        ImGui::Text("Active Restitution: %.3f", body->getRestitution());
+
+        ImGui::Separator();
+        ImGui::TextDisabled("Manual Override");
+        ImGui::TextDisabled("Clears the active preset name");
+
+        float friction = body->getFriction();
+        float restitution = body->getRestitution();
+
+        if (ImGui::SliderFloat("Friction##InspFric", &friction, 0.0f, 2.0f))
+        {
+            body->setFriction(friction);
+            context.selectedObject->getPhysics()->setMaterialName("Custom");
+        }
+        if (ImGui::SliderFloat("Restitution##InspRest", &restitution, 0.0f, 1.0f))
+        {
+            body->setRestitution(restitution);
+            context.selectedObject->getPhysics()->setMaterialName("Custom");
         }
     }
 

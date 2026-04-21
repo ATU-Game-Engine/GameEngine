@@ -76,7 +76,7 @@ void DebugUI::draw(DebugUIContext& context)
     DrawConstraintCreatorPanel(context);
     DrawModelImporterPanel(context);
     DrawLightingPanel(context);
-    DrawConstraintCreatorPanel(context);;
+    DrawSpawnPanel(context);
     DrawTriggerEditorPanel(context);
     DrawForceGeneratorPanel(context);
     DrawPointLightPanel(context);

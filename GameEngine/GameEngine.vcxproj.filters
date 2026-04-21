@@ -130,6 +130,8 @@
     <ClInclude Include="include\UI\LightingPanel.h" />
     <ClInclude Include="include\UI\ModelImporterPanel.h" />
     <ClInclude Include="include\UI\InspectorPanel.h" />
+    <ClInclude Include="include\Rendering\PointLight.h" />
+    <ClInclude Include="include\Rendering\PointLightRegistry.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />

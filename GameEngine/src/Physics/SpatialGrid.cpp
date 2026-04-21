@@ -61,6 +61,7 @@ void SpatialGrid::insertObject(GameObject* obj) {
         cells[cell].insert(obj);
         objectToCells[obj].insert(cell);
     }
+    lastKnownPositions[obj] = obj->getPosition();
 }
 
 void SpatialGrid::removeObject(GameObject* obj) {
@@ -81,6 +82,7 @@ void SpatialGrid::removeObject(GameObject* obj) {
     }
 
     objectToCells.erase(it);
+    lastKnownPositions.erase(obj);
 }
 
 void SpatialGrid::updateObject(GameObject* obj) {
@@ -91,6 +93,19 @@ void SpatialGrid::updateObject(GameObject* obj) {
         insertObject(obj); // Not in grid yet
         return;
     }
+
+	// Check if object moved significantly (e.g., more than 10% of cell size) to avoid unnecessary updates
+    glm::vec3 currentPos = obj->getPosition();
+    auto posIt = lastKnownPositions.find(obj);
+    if (posIt != lastKnownPositions.end())
+    {
+        glm::vec3 delta = currentPos - posIt->second;
+        float thresholdSq = (cellSize * 0.1f) * (cellSize * 0.1f);
+        if (glm::dot(delta, delta) < thresholdSq)
+            return;
+    }
+
+    lastKnownPositions[obj] = currentPos;
 
     // Calculate new cells
     std::vector<glm::ivec3> newCells = getObjectCells(obj->getPosition(), obj->getScale());
@@ -123,6 +138,7 @@ void SpatialGrid::updateObject(GameObject* obj) {
 void SpatialGrid::clear() {
     cells.clear();
     objectToCells.clear();
+    lastKnownPositions.clear();
 }
 
 std::vector<GameObject*> SpatialGrid::queryRadius(

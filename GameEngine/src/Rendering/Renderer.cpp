@@ -521,6 +521,164 @@ void Renderer::drawPointLightDebug(const std::vector<PointLight*>& lights, const
 	glUniform3fv(lightColorLoc, 1, &mainLight.getFinalColor()[0]);
 }
 
+void Renderer::drawConstraintDebug(const std::vector<Constraint*>& constraints,const Camera& camera,int fbW, int fbH)
+{
+	if (!debugPhysicsEnabled) return;
+	if (constraints.empty()) return;
+	if (fbW == 0 || fbH == 0) return;
+
+	unsigned int mainShader = shaderManager.getProgram("main");
+	glUseProgram(mainShader);
+
+	float aspect = (float)fbW / (float)fbH;
+	glm::mat4 view = camera.getViewMatrix();
+	glm::mat4 projection = camera.getProjectionMatrix(aspect);
+	glUniformMatrix4fv(glGetUniformLocation(mainShader, "view"), 1, GL_FALSE, &view[0][0]);
+	glUniformMatrix4fv(glGetUniformLocation(mainShader, "projection"), 1, GL_FALSE, &projection[0][0]);
+
+	int modelLoc = glGetUniformLocation(mainShader, "model");
+	int colorLoc = glGetUniformLocation(mainShader, "objectColor");
+	int useTexLoc = glGetUniformLocation(mainShader, "useTexture");
+	int lightColorLoc = glGetUniformLocation(mainShader, "lightColor");
+
+	glDisable(GL_DEPTH_TEST);
+	glUniform1i(useTexLoc, 0);
+	glUniform3f(lightColorLoc, 10.0f, 10.0f, 10.0f);
+	glLineWidth(2.0f);
+
+	// Build a  reusable line VAO, two positions, updated per segment
+	GLuint vao, vbo;
+	glGenVertexArrays(1, &vao);
+	glGenBuffers(1, &vbo);
+	glBindVertexArray(vao);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glBufferData(GL_ARRAY_BUFFER, 2 * sizeof(glm::vec3), nullptr, GL_STREAM_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
+
+	// Helper upload two endpoints and draw a single line segment
+	auto drawLine = [&](const glm::vec3& a, const glm::vec3& b)
+		{
+			glm::vec3 pts[2] = { a, b };
+			glm::mat4 identity(1.0f);
+			glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &identity[0][0]);
+			glBindBuffer(GL_ARRAY_BUFFER, vbo);
+			glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(pts), pts);
+			glDrawArrays(GL_LINES, 0, 2);
+		};
+
+	// Helper draw a small axis-aligned cross at a world position
+	auto drawCross = [&](const glm::vec3& p, float size)
+		{
+			drawLine(p - glm::vec3(size, 0, 0), p + glm::vec3(size, 0, 0));
+			drawLine(p - glm::vec3(0, size, 0), p + glm::vec3(0, size, 0));
+			drawLine(p - glm::vec3(0, 0, size), p + glm::vec3(0, 0, size));
+		};
+
+	const float markerSize = 0.15f;
+
+	for (Constraint* c : constraints)
+	{
+		if (!c) continue;
+
+		GameObject* A = c->getBodyA();
+		GameObject* B = c->getBodyB();
+		if (!A) continue;
+
+		glm::vec3 posA = A->getPosition();
+		glm::vec3 posB = B ? B->getPosition() : glm::vec3(0.0f);
+
+		
+		glm::vec3 col;
+		switch (c->getType())
+		{
+		case ConstraintType::FIXED:        col = { 0.6f, 0.1f, 0.9f }; break; //  purple
+		case ConstraintType::HINGE:        col = { 0.9f, 0.1f, 0.5f }; break; //  pink
+		case ConstraintType::SLIDER:       col = { 0.0f, 0.7f, 0.6f }; break; // teal
+		case ConstraintType::SPRING:       col = { 0.8f, 1.0f, 0.1f }; break; //  lime
+		case ConstraintType::GENERIC_6DOF: col = { 0.3f, 0.2f, 0.9f }; break; // indigo
+		default:                           col = { 0.5f, 0.5f, 0.5f }; break; // grey
+		}
+
+		// Dim for broken/disabled constraints
+		if (c->isBroken())
+			col *= 0.3f;
+
+		glUniform3f(colorLoc, col.r, col.g, col.b);
+
+		//  Connection line
+		drawLine(posA, posB);
+
+		// Cross markers at each body
+		drawCross(posA, markerSize);
+		drawCross(posB, markerSize);
+
+		//  Hinge: axis line through bodyA
+		if (c->getType() == ConstraintType::HINGE)
+		{
+			// Same pink as the hinge so it reads as part of it
+			glUniform3f(colorLoc, 0.9f, 0.1f, 0.5f);
+			drawLine(posA - glm::vec3(0, 0.4f, 0), posA + glm::vec3(0, 0.4f, 0));
+			glUniform3f(colorLoc, col.r, col.g, col.b); // restore
+		}
+
+		// Slider: dashed line along the slide axis
+		if (c->getType() == ConstraintType::SLIDER)
+		{
+			float segLen = glm::length(posB - posA);
+			if (segLen > 0.001f)
+			{
+				glm::vec3 dir = (posB - posA) / segLen;
+				float     dashLen = 0.15f, gap = 0.15f;
+				for (float t = 0.0f; t < segLen; t += dashLen + gap)
+				{
+					glm::vec3 start = posA + dir * t;
+					glm::vec3 end = posA + dir * std::min(t + dashLen, segLen);
+					drawLine(start, end);
+				}
+			}
+		}
+
+		//  Spring: zigzag coil between the two bodies 
+		if (c->getType() == ConstraintType::SPRING)
+		{
+			glm::vec3 dir = posB - posA;
+			float     len = glm::length(dir);
+
+			if (len > 0.001f)
+			{
+				glm::vec3 normDir = dir / len;
+				glm::vec3 up = std::abs(normDir.y) < 0.9f
+					? glm::vec3(0, 1, 0)
+					: glm::vec3(1, 0, 0);
+				glm::vec3 perp = glm::normalize(glm::cross(normDir, up)) * 0.12f;
+
+				int       coils = 6;
+				glm::vec3 prev = posA;
+
+				for (int i = 1; i <= coils * 2; ++i)
+				{
+					float     t = (float)i / (float)(coils * 2);
+					glm::vec3 offset = (i % 2 == 0) ? perp : -perp;
+					glm::vec3 cur = posA + dir * t + offset;
+					drawLine(prev, cur);
+					prev = cur;
+				}
+				drawLine(prev, posB);
+			}
+		}
+	}
+
+	// Cleanup
+	glBindVertexArray(0);
+	glDeleteBuffers(1, &vbo);
+	glDeleteVertexArrays(1, &vao);
+
+	glLineWidth(1.0f);
+	glEnable(GL_DEPTH_TEST);
+	glUniform3fv(lightColorLoc, 1, &mainLight.getFinalColor()[0]);
+}
+
 void Renderer::uploadPointLights(const std::vector<PointLight*>& lights)
 {
 	unsigned int mainShader = shaderManager.getProgram("main");

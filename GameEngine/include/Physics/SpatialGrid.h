@@ -46,14 +46,14 @@ public:
      */
     explicit SpatialGrid(float cellSize = 10.0f);
 
-    // === Core Operations (call these from Scene) ===
+    // Core Operations 
 
     void insertObject(GameObject* obj);   // Call when spawning
     void removeObject(GameObject* obj);   // Call when destroying
     void updateObject(GameObject* obj);   // Call every frame for moving objects
     void clear();                         // Call when resetting scene
 
-    // === Queries (use these for gameplay) ===
+    // Queries  for gameplay 
 
     /**
      * Find all objects within radius of a point.
@@ -89,6 +89,7 @@ private:
     // Reverse lookup: object -> cells it occupies (for fast updates/removal)
     std::unordered_map<GameObject*, std::unordered_set<glm::ivec3, GridCellHash>> objectToCells;
 
+    std::unordered_map<GameObject*, glm::vec3> lastKnownPositions;
     // Helper methods
     glm::ivec3 worldToCell(const glm::vec3& worldPos) const;
     std::vector<glm::ivec3> getObjectCells(const glm::vec3& position, const glm::vec3& size) const;

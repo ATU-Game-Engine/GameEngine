@@ -21,7 +21,8 @@
 #include "../Physics/ForceGenerator.h"
 #include "../Physics/Trigger.h"
 #include "../Rendering/PointLight.h"
-
+#include "../Physics/ConstraintRegistry.h"
+#include "../Physics/Constraint.h"
 
 class Renderer {
 private:
@@ -63,6 +64,7 @@ public:
     void drawTriggerDebug(const std::vector<Trigger*>& triggers, const Camera& camera, int fbW, int fbH);
     void drawForceGeneratorDebug(const std::vector<ForceGenerator*>& generators, const Camera& camera, int fbW, int fbH);
     void drawPointLightDebug(const std::vector<PointLight*>& lights, const Camera& camera, int fbW, int fbH);
+    void drawConstraintDebug(const std::vector<Constraint*>& constraints, const Camera& camera, int fbW, int fbH);
     void uploadPointLights(const std::vector<PointLight*>& lights);
     
     void cleanup();

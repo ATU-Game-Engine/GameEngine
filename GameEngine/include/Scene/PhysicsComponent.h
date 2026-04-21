@@ -31,7 +31,7 @@ public:
 
     btRigidBody* getRigidBody() const { return rigidBody; }
     const std::string& getMaterialName() const { return materialName; }
-
+    void setMaterialName(const std::string& name) { materialName = name; }
     /**
      * @brief Sync physics simulation state TO the GameObject's transform.
      * Call this after physics simulation has stepped.

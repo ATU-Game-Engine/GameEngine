@@ -217,6 +217,8 @@
     <ClInclude Include="include\Physics\TriggerRegistry.h" />
     <ClInclude Include="include\Rendering\Camera.h" />
     <ClInclude Include="include\Rendering\MeshFactory.h" />
+    <ClInclude Include="include\Rendering\PointLight.h" />
+    <ClInclude Include="include\Rendering\PointLightRegistry.h" />
     <ClInclude Include="include\Rendering\ShaderManager.h" />
     <ClInclude Include="include\Rendering\ShadowMap.h" />
     <ClInclude Include="include\Rendering\TextureManager.h" />
