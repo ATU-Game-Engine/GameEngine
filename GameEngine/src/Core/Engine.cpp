@@ -31,6 +31,7 @@
 #include "../include/Gameplay/GameScene.h"
 #include "../include/Rendering/PointLightRegistry.h"
 #include "../include/Testing/TestUI.h"
+#include "../include/Physics/PhysicsQuery.h"
 #include <filesystem>
 
 void simulate(double dt)
@@ -1229,6 +1230,43 @@ int Start(void)
 
         // End ImGui frame
         ImGui::Render();
+
+        // Camera occlusion — fade walls between camera and player
+        renderer.clearAlphaOverrides();
+
+        if (engineMode == EngineMode::Game)
+        {
+            GameObject* player = nullptr;
+            auto players = scene.findObjectsByTag("player");
+            if (!players.empty()) player = players[0];
+
+            if (player)
+            {
+                glm::vec3 camPos = camera.getPosition();
+                glm::vec3 playerPos = player->getPosition();
+                glm::vec3 rayDir = glm::normalize(playerPos - camPos);
+                float rayLen = glm::distance(camPos, playerPos);
+
+                for (const auto& obj : scene.getObjects())
+                {
+                    if (obj.get() == player) continue;
+
+                    const glm::vec3& pos = obj->getPosition();
+                    const glm::vec3& scale = obj->getScale();
+                    glm::vec3 aabbMin = pos - scale * 0.5f;
+                    glm::vec3 aabbMax = pos + scale * 0.5f;
+
+                    float hitDist;
+                    if (RayIntersectsAABB(camPos, rayDir, aabbMin, aabbMax, hitDist))
+                    {
+                        if (hitDist < rayLen)
+                        {
+                            renderer.setObjectAlpha(obj.get(), 0.3f);
+                        }
+                    }
+                }
+            }
+        }
 
         // --- Render ---
         if (engineMode == EngineMode::Editor)

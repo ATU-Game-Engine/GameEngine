@@ -178,6 +178,13 @@ void Renderer::drawGameObject(const GameObject& obj, int modelLoc, int colorLoc)
 	int uvTilingLoc = glGetUniformLocation(mainShader, "uvTiling");
 	glUniform3f(uvTilingLoc, 1.0f, 1.0f, 1.0f);
 
+	int alphaLoc = glGetUniformLocation(mainShader, "objectAlpha");
+	float alpha = 1.0f;
+	auto it = objectAlphas.find(const_cast<GameObject*>(&obj));
+	if (it != objectAlphas.end())
+		alpha = it->second;
+	glUniform1f(alphaLoc, alpha);
+
 	mesh->draw();
 
 	if (texture) {
@@ -201,6 +208,8 @@ void Renderer::draw(int windowWidth,
 	glViewport(0, 0, windowWidth, windowHeight);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	// Draw skybox first
 	float aspectRatio = (float)windowWidth / (float)windowHeight;
@@ -246,35 +255,42 @@ void Renderer::draw(int windowWidth,
 	glUniform1i(shadowMapLoc, 1);
 
 
+	// Pass 1: opaque objects
+	glDepthMask(GL_TRUE);
 	for (const auto& obj : objects)
 	{
-		bool isSelected =
-			std::find(selectedObjects.begin(),
-				selectedObjects.end(),
-				obj.get()) != selectedObjects.end();
-
-		glUniform1i(glGetUniformLocation(mainShader, "uIsSelected"),
-			isSelected ? 1 : 0);
-
-		glUniform3f(glGetUniformLocation(mainShader, "uHighlightColor"),
-			0.0f, 1.0f, 1.0f); // cyan
-
-		glUniform1f(glGetUniformLocation(mainShader, "uHighlightStrength"),
-			0.6f);
-
-		drawGameObject(*obj, modelLoc, colorLoc);
-
-		// Outline ONLY for primary selection
-		if (primarySelection && obj.get() == primarySelection)
+		auto it = objectAlphas.find(obj.get());
+		float alpha = (it != objectAlphas.end()) ? it->second : 1.0f;
+		if (alpha >= 1.0f)
 		{
-			drawOutlineOnly(*obj, modelLoc, colorLoc);
-		}
-
-		if (debugPhysicsEnabled)
-		{
-			drawDebugCollisionShape(*obj, modelLoc, colorLoc);
+			bool isSelected = std::find(selectedObjects.begin(), selectedObjects.end(), obj.get()) != selectedObjects.end();
+			glUniform1i(glGetUniformLocation(mainShader, "uIsSelected"), isSelected ? 1 : 0);
+			glUniform3f(glGetUniformLocation(mainShader, "uHighlightColor"), 0.0f, 1.0f, 1.0f);
+			glUniform1f(glGetUniformLocation(mainShader, "uHighlightStrength"), 0.6f);
+			drawGameObject(*obj, modelLoc, colorLoc);
+			if (primarySelection && obj.get() == primarySelection)
+				drawOutlineOnly(*obj, modelLoc, colorLoc);
+			if (debugPhysicsEnabled)
+				drawDebugCollisionShape(*obj, modelLoc, colorLoc);
 		}
 	}
+
+	// Pass 2: transparent objects
+	glDepthMask(GL_FALSE);
+	for (const auto& obj : objects)
+	{
+		auto it = objectAlphas.find(obj.get());
+		float alpha = (it != objectAlphas.end()) ? it->second : 1.0f;
+		if (alpha < 1.0f)
+		{
+			bool isSelected = std::find(selectedObjects.begin(), selectedObjects.end(), obj.get()) != selectedObjects.end();
+			glUniform1i(glGetUniformLocation(mainShader, "uIsSelected"), isSelected ? 1 : 0);
+			glUniform3f(glGetUniformLocation(mainShader, "uHighlightColor"), 0.0f, 1.0f, 1.0f);
+			glUniform1f(glGetUniformLocation(mainShader, "uHighlightStrength"), 0.6f);
+			drawGameObject(*obj, modelLoc, colorLoc);
+		}
+	}
+	glDepthMask(GL_TRUE);
 }
 
 // Draws a black wire overlay on top of the object (if mesh has edge indices).

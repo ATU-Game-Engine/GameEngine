@@ -4,6 +4,7 @@
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <vector>
+#include <unordered_map>
 #include "../include/Rendering/Camera.h"
 #include "../include/Rendering/Mesh.h"
 #include "../include/Scene/GameObject.h"
@@ -37,6 +38,7 @@ private:
     DirectionalLight mainLight;
     Skybox skybox;
     bool skyboxEnabled;
+    std::unordered_map<GameObject*, float> objectAlphas;
 
    
     void drawGameObject(const GameObject& obj, int modelLoc, int colorLoc);// draw a single game object
@@ -66,6 +68,8 @@ public:
     void drawPointLightDebug(const std::vector<PointLight*>& lights, const Camera& camera, int fbW, int fbH);
     void drawConstraintDebug(const std::vector<Constraint*>& constraints, const Camera& camera, int fbW, int fbH);
     void uploadPointLights(const std::vector<PointLight*>& lights);
+    void setObjectAlpha(GameObject* obj, float alpha) { objectAlphas[obj] = alpha; }
+    void clearAlphaOverrides() { objectAlphas.clear(); }
     
     void cleanup();
 

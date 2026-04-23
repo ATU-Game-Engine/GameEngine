@@ -13,6 +13,8 @@ uniform vec3 lightDir;      // Light direction
 uniform vec3 viewPos;       // Camera position
 uniform vec3 lightColor;    // Light color
 uniform vec3 uvTiling;
+uniform float objectAlpha; // Object alpha for transparency
+
 // Point lights - max 16
 #define MAX_POINT_LIGHTS 16
 uniform int         numPointLights;
@@ -169,7 +171,7 @@ void main()
     if (uIsSelected) {
     result = mix(result, uHighlightColor, uHighlightStrength);
     }
-    FragColor = vec4(result, 1.0);
+    FragColor = vec4(result, objectAlpha);
 
 
 
