@@ -15,7 +15,7 @@
     "forceGenerators": [],
     "objects": [
         {
-            "id": 136,
+            "id": 98,
             "name": "Ground",
             "physics": {
                 "enabled": true,
@@ -55,7 +55,7 @@
             }
         },
         {
-            "id": 137,
+            "id": 99,
             "name": "Player",
             "physics": {
                 "enabled": true,
@@ -79,15 +79,15 @@
             ],
             "transform": {
                 "position": [
-                    12.000375747680664,
-                    0.8999999165534973,
-                    5.868403434753418
+                    -1.6656880378723145,
+                    2.6802778244018555,
+                    18.467628479003906
                 ],
                 "rotation": [
-                    -2.271693659849916e-07,
-                    0.8855710625648499,
-                    2.279750788147794e-07,
-                    0.4645040035247803
+                    -0.3989868760108948,
+                    1.6542260539154086e-07,
+                    0.9169566035270691,
+                    -6.384785251611902e-07
                 ],
                 "scale": [
                     1.0,
@@ -97,7 +97,7 @@
             }
         },
         {
-            "id": 138,
+            "id": 100,
             "name": "Wall_Outer_North",
             "physics": {
                 "enabled": true,
@@ -137,7 +137,7 @@
             }
         },
         {
-            "id": 139,
+            "id": 101,
             "name": "Wall_Outer_South",
             "physics": {
                 "enabled": true,
@@ -171,13 +171,13 @@
                 ],
                 "scale": [
                     42.0,
-                    4.0,
+                    5.0,
                     1.0
                 ]
             }
         },
         {
-            "id": 140,
+            "id": 102,
             "name": "Wall_Outer_West",
             "physics": {
                 "enabled": true,
@@ -211,13 +211,13 @@
                 ],
                 "scale": [
                     1.0,
-                    4.0,
+                    5.0,
                     42.0
                 ]
             }
         },
         {
-            "id": 141,
+            "id": 103,
             "name": "Wall_Outer_East",
             "physics": {
                 "enabled": true,
@@ -257,7 +257,7 @@
             }
         },
         {
-            "id": 142,
+            "id": 104,
             "name": "Wall_H1a",
             "physics": {
                 "enabled": true,
@@ -297,7 +297,7 @@
             }
         },
         {
-            "id": 143,
+            "id": 105,
             "name": "Wall_H1b",
             "physics": {
                 "enabled": true,
@@ -337,7 +337,7 @@
             }
         },
         {
-            "id": 144,
+            "id": 106,
             "name": "Wall_H2",
             "physics": {
                 "enabled": true,
@@ -377,7 +377,7 @@
             }
         },
         {
-            "id": 145,
+            "id": 107,
             "name": "Wall_H3a",
             "physics": {
                 "enabled": true,
@@ -417,7 +417,7 @@
             }
         },
         {
-            "id": 146,
+            "id": 108,
             "name": "Wall_H3b",
             "physics": {
                 "enabled": true,
@@ -457,7 +457,7 @@
             }
         },
         {
-            "id": 147,
+            "id": 109,
             "name": "Wall_H4",
             "physics": {
                 "enabled": true,
@@ -497,7 +497,7 @@
             }
         },
         {
-            "id": 148,
+            "id": 110,
             "name": "Wall_H6",
             "physics": {
                 "enabled": true,
@@ -531,13 +531,13 @@
                 ],
                 "scale": [
                     24.0,
-                    4.0,
+                    5.0,
                     1.0
                 ]
             }
         },
         {
-            "id": 149,
+            "id": 111,
             "name": "Wall_V1a",
             "physics": {
                 "enabled": true,
@@ -577,7 +577,7 @@
             }
         },
         {
-            "id": 150,
+            "id": 112,
             "name": "Wall_V1b",
             "physics": {
                 "enabled": true,
@@ -601,7 +601,7 @@
                 "position": [
                     -15.0,
                     2.0,
-                    9.0
+                    8.080007553100586
                 ],
                 "rotation": [
                     0.0,
@@ -611,13 +611,13 @@
                 ],
                 "scale": [
                     1.0,
-                    4.0,
-                    12.0
+                    5.0,
+                    15.0
                 ]
             }
         },
         {
-            "id": 151,
+            "id": 113,
             "name": "Wall_V2b",
             "physics": {
                 "enabled": true,
@@ -657,7 +657,7 @@
             }
         },
         {
-            "id": 152,
+            "id": 114,
             "name": "Wall_V3",
             "physics": {
                 "enabled": true,
@@ -697,7 +697,7 @@
             }
         },
         {
-            "id": 153,
+            "id": 115,
             "name": "Wall_V4a",
             "physics": {
                 "enabled": true,
@@ -737,7 +737,7 @@
             }
         },
         {
-            "id": 154,
+            "id": 116,
             "name": "Wall_V4b",
             "physics": {
                 "enabled": true,
@@ -777,7 +777,7 @@
             }
         },
         {
-            "id": 155,
+            "id": 117,
             "name": "Wall_V5",
             "physics": {
                 "enabled": true,
@@ -817,7 +817,7 @@
             }
         },
         {
-            "id": 156,
+            "id": 118,
             "name": "Wall_V5b",
             "physics": {
                 "enabled": true,
@@ -857,7 +857,7 @@
             }
         },
         {
-            "id": 157,
+            "id": 119,
             "name": "Wall_V6",
             "physics": {
                 "enabled": true,
@@ -897,7 +897,7 @@
             }
         },
         {
-            "id": 158,
+            "id": 120,
             "name": "",
             "physics": {
                 "enabled": false,
@@ -935,7 +935,7 @@
             }
         },
         {
-            "id": 159,
+            "id": 121,
             "name": "Cube_205",
             "physics": {
                 "enabled": true,
@@ -958,7 +958,7 @@
             "transform": {
                 "position": [
                     -382.2080993652344,
-                    -68058.59375,
+                    -870616.75,
                     17.95427894592285
                 ],
                 "rotation": [
@@ -971,6 +971,166 @@
                     1.0,
                     1.0,
                     1.0
+                ]
+            }
+        },
+        {
+            "id": 122,
+            "name": "Cube_62",
+            "physics": {
+                "enabled": true,
+                "mass": 0.0,
+                "material": "Concrete",
+                "physicsScale": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "render": {
+                "modelPath": "",
+                "normal": "",
+                "specular": "",
+                "texture": "textures\\PavingStones138_1K-JPG_Color.jpg"
+            },
+            "shape": 0,
+            "tags": [],
+            "transform": {
+                "position": [
+                    -17.77541160583496,
+                    -0.4416060447692871,
+                    13.040043830871582
+                ],
+                "rotation": [
+                    0.27059808373451233,
+                    0.6532815098762512,
+                    0.27059808373451233,
+                    0.6532814502716064
+                ],
+                "scale": [
+                    5.0,
+                    4.0,
+                    6.0
+                ]
+            }
+        },
+        {
+            "id": 123,
+            "name": "Cube_123",
+            "physics": {
+                "enabled": true,
+                "mass": 0.0,
+                "material": "Concrete",
+                "physicsScale": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "render": {
+                "modelPath": "",
+                "normal": "",
+                "specular": "",
+                "texture": "textures\\PavingStones138_1K-JPG_Color.jpg"
+            },
+            "shape": 0,
+            "tags": [],
+            "transform": {
+                "position": [
+                    -18.167593002319336,
+                    -0.05590486526489258,
+                    2.4781458377838135
+                ],
+                "rotation": [
+                    0.3826834559440613,
+                    1.2168316354532749e-09,
+                    -5.040282080592817e-10,
+                    0.9238795042037964
+                ],
+                "scale": [
+                    6.0,
+                    4.0,
+                    3.0
+                ]
+            }
+        },
+        {
+            "id": 124,
+            "name": "Cube_124",
+            "physics": {
+                "enabled": true,
+                "mass": 0.0,
+                "material": "Concrete",
+                "physicsScale": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "render": {
+                "modelPath": "",
+                "normal": "",
+                "specular": "",
+                "texture": "textures\\PavingStones138_1K-JPG_Color.jpg"
+            },
+            "shape": 0,
+            "tags": [],
+            "transform": {
+                "position": [
+                    -17.76321792602539,
+                    2.4002950191497803,
+                    11.690491676330566
+                ],
+                "rotation": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0
+                ],
+                "scale": [
+                    6.0,
+                    0.5,
+                    2.0
+                ]
+            }
+        },
+        {
+            "id": 125,
+            "name": "Cube_125",
+            "physics": {
+                "enabled": true,
+                "mass": 0.0,
+                "material": "Concrete",
+                "physicsScale": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "render": {
+                "modelPath": "",
+                "normal": "",
+                "specular": "",
+                "texture": "textures\\PavingStones138_1K-JPG_Color.jpg"
+            },
+            "shape": 0,
+            "tags": [],
+            "transform": {
+                "position": [
+                    -18.268667221069336,
+                    2.1339597702026367,
+                    3.8162736892700195
+                ],
+                "rotation": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0
+                ],
+                "scale": [
+                    6.0,
+                    0.5,
+                    2.0
                 ]
             }
         }
@@ -987,7 +1147,7 @@
                 0.0
             ],
             "forceMagnitude": 400.0,
-            "id": 8,
+            "id": 3,
             "maxUses": -1,
             "name": "Trigger_1",
             "position": [
@@ -1009,7 +1169,7 @@
             "behaviourTag": "sphere_spawner",
             "debugVisualize": true,
             "enabled": true,
-            "id": 9,
+            "id": 4,
             "maxUses": 1,
             "name": "Sphere_Spawner",
             "position": [
@@ -1026,6 +1186,33 @@
                 2.0
             ],
             "type": 2
+        },
+        {
+            "behaviourTag": "",
+            "debugVisualize": true,
+            "enabled": true,
+            "id": 5,
+            "maxUses": -1,
+            "name": "Teleporter",
+            "position": [
+                -18.13251495361328,
+                0.11597895622253418,
+                7.5754170417785645
+            ],
+            "requiredTags": [
+                "player"
+            ],
+            "size": [
+                5.0,
+                0.5,
+                4.0
+            ],
+            "teleportDestination": [
+                -18.007999420166016,
+                0.44999998807907104,
+                18.566999435424805
+            ],
+            "type": 0
         }
     ]
 }
