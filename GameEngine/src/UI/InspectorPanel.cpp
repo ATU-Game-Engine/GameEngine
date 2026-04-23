@@ -327,6 +327,7 @@ void DrawInspectorPanel(DebugUIContext& context)
 
                 if (ImGui::TreeNode(label.c_str()))
                 {
+                    // read only info
                     ImGui::Text("Type: %s", ConstraintTypeToString(c->getType()));
 
                     GameObject* bodyA = c->getBodyA();
@@ -335,28 +336,232 @@ void DrawInspectorPanel(DebugUIContext& context)
                     if (bodyB) ImGui::Text("Connected to B: ID %llu", bodyB->getID());
                     else       ImGui::Text("Connected to: World");
 
+                    // enabled toggle
                     bool enabled = !c->isBroken();
                     if (ImGui::Checkbox("Enabled", &enabled))
                         c->setEnabled(enabled);
+                    // Breakable settings
+                    ImGui::Spacing();
+                    ImGui::SeparatorText("Breaking");
 
-                    if (c->getType() == ConstraintType::HINGE)
-                        ImGui::Text("Current Angle: %.1f°",
-                            glm::degrees(c->getHingeAngle()));
-                    else if (c->getType() == ConstraintType::SLIDER)
-                        ImGui::Text("Current Position: %.2f", c->getSliderPosition());
+                    bool isBreakable = c->isBreakable();
+                    if (ImGui::Checkbox("Breakable##InspBreakable", &isBreakable))
+                    {
+                        if (isBreakable)
+                            c->setBreakingThreshold(1000.0f, 1000.0f);
+                        else
+                            c->setBreakingThreshold(INFINITY, INFINITY);
+                    }
 
                     if (c->isBreakable())
                     {
-                        ImGui::TextColored(ImVec4(1, 0.8f, 0, 1), "Breakable");
-                        ImGui::Text("Break Force: %.0f", c->getBreakForce());
-                    }
+                        float breakForce = c->getBreakForce();
+                        if (ImGui::DragFloat("Break Force##InspBreakForce", &breakForce, 10.0f, 0.0f, 100000.0f))
+                            c->setBreakingThreshold(breakForce, c->getBreakTorque());
 
+                        float breakTorque = c->getBreakTorque();
+                        if (ImGui::DragFloat("Break Torque##InspBreakTorque", &breakTorque, 10.0f, 0.0f, 100000.0f))
+                            c->setBreakingThreshold(c->getBreakForce(), breakTorque);
+                    }
+					// Type-specific editing
+                    ImGui::Spacing();
+                    ImGui::SeparatorText("Properties");
+                    switch (c->getType())
+                    {   
+                        case ConstraintType::HINGE:
+                        {
+                            float angleDeg = glm::degrees(c->getHingeAngle());
+                            ImGui::Text("Current Angle: %.1f deg", angleDeg);
+
+                            btHingeConstraint* hinge =
+                                static_cast<btHingeConstraint*>(c->getBulletConstraint());
+
+                            static float      hingeLower = -90.0f;
+                            static float      hingeUpper = 90.0f;
+                            static bool       hingeUseLimits = false;
+                            static bool       hingeMotorOn = false;
+                            static float      hingeMotorVel = 1.0f;
+                            static float      hingeMotorImp = 10.0f;
+                            static Constraint* lastHinge = nullptr; // track which constraint is open
+
+                            if (c != lastHinge && hinge)
+                            {
+                                lastHinge = c;
+                                hingeUseLimits = hinge->hasLimit();
+                                if (hingeUseLimits)
+                                {
+                                    hingeLower = glm::degrees(hinge->getLowerLimit());
+                                    hingeUpper = glm::degrees(hinge->getUpperLimit());
+                                }
+                                // getEnableMotor is not publicly exposed in Bullet
+                                // default to false and let the user toggle it on
+                                hingeMotorOn = false;
+                                hingeMotorVel = 1.0f;
+                                hingeMotorImp = 10.0f;
+                            }
+
+                            if (ImGui::Checkbox("Use Limits##HingeLimits", &hingeUseLimits))
+                            {
+                                if (hingeUseLimits)
+                                    c->setAngleLimits(glm::radians(hingeLower), glm::radians(hingeUpper));
+                                else
+                                    c->setAngleLimits(1.0f, -1.0f); // lower > upper = no limit in Bullet
+                            }
+
+                            if (hingeUseLimits)
+                            {
+                                bool limitsChanged = false;
+                                limitsChanged |= ImGui::DragFloat("Lower (deg)##HingeLower", &hingeLower, 0.5f, -180.0f, 0.0f);
+                                limitsChanged |= ImGui::DragFloat("Upper (deg)##HingeUpper", &hingeUpper, 0.5f, 0.0f, 180.0f);
+                                if (limitsChanged)
+                                    c->setAngleLimits(glm::radians(hingeLower), glm::radians(hingeUpper));
+                            }
+
+                            ImGui::Spacing();
+                            if (ImGui::Checkbox("Motor##HingeMotor", &hingeMotorOn))
+                            {
+                                if (hingeMotorOn) c->enableMotor(hingeMotorVel, hingeMotorImp);
+                                else              c->disableMotor();
+                            }
+
+                            if (hingeMotorOn)
+                            {
+                                bool motorChanged = false;
+                                motorChanged |= ImGui::DragFloat("Target Velocity##HingeVel", &hingeMotorVel, 0.05f, -20.0f, 20.0f);
+                                motorChanged |= ImGui::DragFloat("Max Impulse##HingeImp", &hingeMotorImp, 0.5f, 0.0f, 500.0f);
+                                if (motorChanged)
+                                    c->enableMotor(hingeMotorVel, hingeMotorImp);
+                            }
+                            break;
+                        }
+
+                        case ConstraintType::SLIDER:
+                        {
+                            ImGui::Text("Current Position: %.2f", c->getSliderPosition());
+
+                            btSliderConstraint* slider =
+                                static_cast<btSliderConstraint*>(c->getBulletConstraint());
+
+                            static float       sliderLower = -5.0f;
+                            static float       sliderUpper = 5.0f;
+                            static bool        sliderUseLimits = false;
+                            static bool        sliderMotorOn = false;
+                            static float       sliderMotorVel = 1.0f;
+                            static float       sliderMotorForce = 10.0f;
+                            static Constraint* lastSlider = nullptr; // track which constraint is open
+
+                            if (c != lastSlider && slider)
+                            {
+                                lastSlider = c;
+                                sliderLower = slider->getLowerLinLimit();
+                                sliderUpper = slider->getUpperLinLimit();
+                                sliderUseLimits = sliderLower <= sliderUpper;
+                                sliderMotorOn = slider->getPoweredLinMotor();
+                                sliderMotorVel = slider->getTargetLinMotorVelocity();
+                                sliderMotorForce = slider->getMaxLinMotorForce();
+                            }
+
+                            if (ImGui::Checkbox("Use Limits##SliderLimits", &sliderUseLimits))
+                            {
+                                if (sliderUseLimits) c->setLinearLimits(sliderLower, sliderUpper);
+                                else                 c->setLinearLimits(1.0f, -1.0f);
+                            }
+
+                            if (sliderUseLimits)
+                            {
+                                bool limitsChanged = false;
+                                limitsChanged |= ImGui::DragFloat("Lower##SliderLower", &sliderLower, 0.1f, -100.0f, 0.0f);
+                                limitsChanged |= ImGui::DragFloat("Upper##SliderUpper", &sliderUpper, 0.1f, 0.0f, 100.0f);
+                                if (limitsChanged)
+                                    c->setLinearLimits(sliderLower, sliderUpper);
+                            }
+
+                            ImGui::Spacing();
+                            if (ImGui::Checkbox("Motor##SliderMotor", &sliderMotorOn))
+                            {
+                                if (sliderMotorOn)  c->enableLinearMotor(sliderMotorVel, sliderMotorForce);
+                                else if (slider)    slider->setPoweredLinMotor(false);
+                            }
+
+                            if (sliderMotorOn)
+                            {
+                                bool motorChanged = false;
+                                motorChanged |= ImGui::DragFloat("Target Velocity##SliderVel", &sliderMotorVel, 0.05f, -20.0f, 20.0f);
+                                motorChanged |= ImGui::DragFloat("Max Force##SliderForce", &sliderMotorForce, 0.5f, 0.0f, 500.0f);
+                                if (motorChanged)
+                                    c->enableLinearMotor(sliderMotorVel, sliderMotorForce);
+                            }
+                            break;
+                        }
+
+                        case ConstraintType::SPRING:
+                        {
+                            ImGui::TextDisabled("0-2 = Linear XYZ    3-5 = Angular XYZ");
+
+                            btGeneric6DofSpringConstraint* spring =
+                                static_cast<btGeneric6DofSpringConstraint*>(c->getBulletConstraint());
+
+                            static bool  springEnabled[6] = {};
+                            static float springStiffness[6] = { 100,100,100,100,100,100 };
+                            static float springDamping[6] = { 0.3f,0.3f,0.3f,0.3f,0.3f,0.3f };
+
+                            const char* axisNames[6] = {
+                                "Linear X","Linear Y","Linear Z",
+                                "Angular X","Angular Y","Angular Z"
+                            };
+
+                            for (int axis = 0; axis < 6; ++axis)
+                            {
+                                ImGui::PushID(axis);
+                                ImGui::SeparatorText(axisNames[axis]);
+
+                                bool changed = false;
+                                changed |= ImGui::Checkbox("Active##SpringActive", &springEnabled[axis]);
+                                if (springEnabled[axis])
+                                {
+                                    changed |= ImGui::DragFloat("Stiffness##SpringStiff", &springStiffness[axis], 1.0f, 0.0f, 10000.0f);
+                                    changed |= ImGui::DragFloat("Damping##SpringDamp", &springDamping[axis], 0.01f, 0.0f, 1.0f);
+                                }
+
+                                if (changed && spring)
+                                {
+                                    spring->enableSpring(axis, springEnabled[axis]);
+                                    if (springEnabled[axis])
+                                    {
+                                        c->setSpringStiffness(axis, springStiffness[axis]);
+                                        c->setSpringDamping(axis, springDamping[axis]);
+                                    }
+                                }
+                                ImGui::PopID();
+                            }
+
+                            ImGui::Spacing();
+                            if (ImGui::Button("Reset Equilibrium Point##SpringEq", ImVec2(-1, 0)))
+                                if (spring) spring->setEquilibriumPoint();
+                            ImGui::TextDisabled("Resets spring rest position to current object position");
+                            break;
+                        }
+
+                        case ConstraintType::FIXED:
+                            ImGui::TextDisabled("Fixed constraints have no editable properties");
+                            break;
+
+                        case ConstraintType::GENERIC_6DOF:
+                            ImGui::TextDisabled("Use Constraint Creator panel for 6DOF limit editing");
+                            break;
+
+                    default: break;
+                    } 
+					// remove constraint button
+                    ImGui::Spacing();
                     ImGui::Separator();
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.1f, 0.1f, 1));
+                    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.0f, 0.2f, 0.2f, 1));
+                    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.6f, 0.0f, 0.0f, 1));
                     if (ImGui::Button("Remove Constraint", ImVec2(-1, 0)))
                         if (context.constraintCommands.removeConstraint)
                             context.constraintCommands.removeConstraint(c);
-                    ImGui::PopStyleColor();
+                    ImGui::PopStyleColor(3);
 
                     ImGui::TreePop();
                 }

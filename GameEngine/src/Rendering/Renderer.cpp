@@ -445,32 +445,187 @@ void Renderer::drawForceGeneratorDebug(const std::vector<ForceGenerator*>& gener
 	glDisable(GL_DEPTH_TEST);
 	glUniform1i(useTexLoc, 0);
 	glUniform3f(lightColorLoc, 10.0f, 10.0f, 10.0f);
-	glLineWidth(1.5f);
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+	// Draw as wireframe spheres
+	GLuint vao, vbo;
+	glGenVertexArrays(1, &vao);
+	glGenBuffers(1, &vbo);
+	glBindVertexArray(vao);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glBufferData(GL_ARRAY_BUFFER, 2 * sizeof(glm::vec3), nullptr, GL_STREAM_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
+
+	auto drawLine = [&](const glm::vec3& a, const glm::vec3& b)
+	{
+		glm::vec3 pts[2] = { a, b };
+		glm::mat4 identity(1.0f);
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &identity[0][0]);
+		glBindBuffer(GL_ARRAY_BUFFER, vbo);
+		glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(pts), pts);
+		glDrawArrays(GL_LINES, 0, 2);
+	};
+
+	// Circle in a plane defined by two axes
+	auto drawCircle = [&](const glm::vec3& center, const glm::vec3& axisA, const glm::vec3& axisB, float radius, int segments = 32)
+	{
+		glm::vec3 prev = center + axisA * radius;
+		for (int i = 1; i <= segments; ++i)
+		{
+			float angle = (float)i / (float)segments * glm::two_pi<float>();
+			glm::vec3 cur = center + (axisA * std::cos(angle) + axisB * std::sin(angle)) * radius;
+			drawLine(prev, cur);
+			prev = cur;
+		}
+	};
+
+	// Arrow: line from origin in direction with two wing lines at tip
+	auto drawArrow = [&](const glm::vec3& origin, const glm::vec3& dir, float length)
+	{
+		glm::vec3 tip = origin + dir * length;
+		drawLine(origin, tip);
+
+		glm::vec3 up = std::abs(dir.y) < 0.9f ? glm::vec3(0, 1, 0) : glm::vec3(1, 0, 0);
+		glm::vec3 perp = glm::normalize(glm::cross(dir, up));
+		float wingLen = length * 0.2f;
+		drawLine(tip, tip - dir * wingLen + perp * wingLen * 0.5f);
+		drawLine(tip, tip - dir * wingLen - perp * wingLen * 0.5f);
+	};
 
 	for (ForceGenerator* gen : generators)
 	{
 		if (!gen || !gen->isEnabled()) continue;
 
+		glm::vec3 pos = gen->getPosition();
+		float radius = gen->getRadius();
+
 		switch (gen->getType())
 		{
-		case ForceGeneratorType::WIND:         glUniform3f(colorLoc, 0.5f, 0.8f, 1.0f); break; // light blue
-		case ForceGeneratorType::GRAVITY_WELL: glUniform3f(colorLoc, 0.8f, 0.0f, 1.0f); break; // purple
-		case ForceGeneratorType::VORTEX:       glUniform3f(colorLoc, 1.0f, 0.5f, 0.0f); break; // orange
-		case ForceGeneratorType::EXPLOSION:    glUniform3f(colorLoc, 1.0f, 0.2f, 0.0f); break; // red
-		default:                               glUniform3f(colorLoc, 1.0f, 1.0f, 1.0f); break;
+				//Wind
+				// Directional and uniform inside range,box shows boundary, arrows show direction
+			case ForceGeneratorType::WIND:
+			{
+				glUniform3f(colorLoc, 0.5f, 0.8f, 1.0f);
+				glLineWidth(1.5f);
+
+				auto* w = static_cast<WindGenerator*>(gen);
+				glm::vec3 dir = glm::normalize(w->getDirection());
+
+				float r = (radius > 0.0f) ? radius : 10.0f; // fallback for infinite
+				glm::mat4 model = glm::scale(glm::translate(glm::mat4(1.0f), pos), glm::vec3(r * 2.0f));
+
+				// Sphere boundary to match isInRange sphere check
+				drawCircle(pos, glm::vec3(1, 0, 0), glm::vec3(0, 1, 0), r);
+				drawCircle(pos, glm::vec3(1, 0, 0), glm::vec3(0, 0, 1), r);
+				drawCircle(pos, glm::vec3(0, 1, 0), glm::vec3(0, 0, 1), r);
+
+				// Arrows showing wind direction
+				glUniform3f(colorLoc, 0.8f, 1.0f, 1.0f);
+				glLineWidth(2.0f);
+				drawArrow(pos, dir, r * 0.6f);
+				drawArrow(pos + glm::vec3(0, r * 0.3f, 0), dir, r * 0.4f);
+				drawArrow(pos - glm::vec3(0, r * 0.3f, 0), dir, r * 0.4f);
+				break; // light blue
+			}
+
+			//Gravity well
+			//Sphere shows range, inner rings show force increases toward center
+			case ForceGeneratorType::GRAVITY_WELL:
+			{
+				glUniform3f(colorLoc, 0.8f, 0.0f, 1.0f);
+				glLineWidth(1.5f);
+
+				drawCircle(pos, glm::vec3(1, 0, 0), glm::vec3(0, 1, 0), radius);
+				drawCircle(pos, glm::vec3(1, 0, 0), glm::vec3(0, 0, 1), radius);
+				drawCircle(pos, glm::vec3(0, 1, 0), glm::vec3(0, 0, 1), radius);
+
+				glUniform3f(colorLoc, 1.0f, 0.3f, 1.0f); // brighter inner rings
+				drawCircle(pos, glm::vec3(1, 0, 0), glm::vec3(0, 1, 0), radius * 0.66f);
+				drawCircle(pos, glm::vec3(1, 0, 0), glm::vec3(0, 0, 1), radius * 0.66f);
+				drawCircle(pos, glm::vec3(0, 1, 0), glm::vec3(0, 0, 1), radius * 0.66f);
+
+				drawCircle(pos, glm::vec3(1, 0, 0), glm::vec3(0, 1, 0), radius * 0.33f);
+				drawCircle(pos, glm::vec3(1, 0, 0), glm::vec3(0, 0, 1), radius * 0.33f);
+				drawCircle(pos, glm::vec3(0, 1, 0), glm::vec3(0, 0, 1), radius * 0.33f);
+				break; // purple
+			}
+			// Vortex
+			// Force varies by distance from axis, axis line + rings show rotation plane
+			// Bodies ON axis feel nothing, bodies at EDGE feel maximum spin
+			case ForceGeneratorType::VORTEX:
+			{
+				glUniform3f(colorLoc, 1.0f, 0.5f, 0.0f);
+				glLineWidth(1.5f);
+
+				auto* v = static_cast<VortexGenerator*>(gen);
+				glm::vec3 axis = glm::normalize(v->getAxis());
+
+				// Axis line through center
+				glLineWidth(2.5f);
+				drawLine(pos - axis * radius, pos + axis * radius);
+				glLineWidth(1.5f);
+
+				glm::vec3 perp1 = glm::normalize(
+					glm::cross(axis, std::abs(axis.y) < 0.9f ? glm::vec3(0, 1, 0) : glm::vec3(1, 0, 0)));
+				glm::vec3 perp2 = glm::cross(axis, perp1);
+
+				// Rings at multiple heights along axis, tapering to hint at funnel shape
+				int ringCount = 5;
+				for (int i = 0; i <= ringCount; ++i)
+				{
+					float     t = ((float)i / ringCount) * 2.0f - 1.0f;
+					glm::vec3 ringCenter = pos + axis * (t * radius);
+					float     ringRadius = radius * (1.0f - std::abs(t) * 0.3f);
+					drawCircle(ringCenter, perp1, perp2, ringRadius);
+				}
+
+				// Outer boundary sphere (dimmer)
+				glUniform3f(colorLoc, 0.5f, 0.25f, 0.0f);
+				drawCircle(pos, glm::vec3(1, 0, 0), glm::vec3(0, 1, 0), radius);
+				drawCircle(pos, glm::vec3(1, 0, 0), glm::vec3(0, 0, 1), radius);
+				drawCircle(pos, glm::vec3(0, 1, 0), glm::vec3(0, 0, 1), radius);
+				break; // orange
+			}
+			// Explosion
+			// Simple radial burst ,sphere boundary, spikes show outward force directions, longer spikes = stronger forces at edge of effect
+			case ForceGeneratorType::EXPLOSION:
+			{
+				glUniform3f(colorLoc, 1.0f, 0.2f, 0.0f);
+				glLineWidth(1.5f);
+
+				drawCircle(pos, glm::vec3(1, 0, 0), glm::vec3(0, 1, 0), radius);
+				drawCircle(pos, glm::vec3(1, 0, 0), glm::vec3(0, 0, 1), radius);
+				drawCircle(pos, glm::vec3(0, 1, 0), glm::vec3(0, 0, 1), radius);
+
+				glLineWidth(2.0f);
+				const std::vector<glm::vec3> spikeDirs = {
+					{ 1,0,0},{-1,0,0},{ 0,1,0},{ 0,-1,0},{ 0,0,1},{ 0,0,-1},
+					glm::normalize(glm::vec3(1, 1, 0)),
+					glm::normalize(glm::vec3(-1, 1, 0)),
+					glm::normalize(glm::vec3(1,-1, 0)),
+					glm::normalize(glm::vec3(0, 1, 1)),
+					glm::normalize(glm::vec3(0, 1,-1)),
+					glm::normalize(glm::vec3(1, 0, 1)),
+				};
+				for (const auto& d : spikeDirs) {
+					drawArrow(pos, d, radius);
+				}
+
+				break; // red
+			}
+		default:
+			glUniform3f(colorLoc, 1.0f, 1.0f, 1.0f);
+			glLineWidth(1.5f);
+			drawCircle(pos, glm::vec3(1, 0, 0), glm::vec3(0, 1, 0), radius);
+			break;
 		}
-
-		// Generators use radius so draw as sphere scaled to diameter
-		float r = gen->getRadius();
-		glm::mat4 model = glm::translate(glm::mat4(1.0f), gen->getPosition());
-		model = glm::scale(model, glm::vec3(r * 2.0f));
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
-
-		sphereMesh.draw();
 	}
-
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	// Cleanup
+	glBindVertexArray(0);
+	glDeleteBuffers(1, &vbo);
+	glDeleteVertexArrays(1, &vao);
+	// Restore defaults
+	glLineWidth(1.0f);
 	glEnable(GL_DEPTH_TEST);
 	glUniform3fv(lightColorLoc, 1, &mainLight.getFinalColor()[0]);
 }

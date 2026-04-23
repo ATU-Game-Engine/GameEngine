@@ -541,6 +541,28 @@ int Start(void)
 
         bool gizmoCapturingMouse = false;
 
+        // Validate selections are still alive to prevent dangling pointer crashes
+        // when items are deleted via UI panels without clearing the selection pointer
+        if (selectedForceGenerator)
+        {
+            auto gens = ForceGeneratorRegistry::getInstance().getAllGenerators();
+            if (std::find(gens.begin(), gens.end(), selectedForceGenerator) == gens.end())
+                selectedForceGenerator = nullptr;
+        }
+
+        if (selectedTrigger)
+        {
+            auto trigs = TriggerRegistry::getInstance().getAllTriggers();
+            if (std::find(trigs.begin(), trigs.end(), selectedTrigger) == trigs.end())
+                selectedTrigger = nullptr;
+        }
+
+        if (selectedPointLight)
+        {
+            auto lights = PointLightRegistry::getInstance().getAllLights();
+            if (std::find(lights.begin(), lights.end(), selectedPointLight) == lights.end())
+                selectedPointLight = nullptr;
+        }
         // Priority: ForceGenerator > Trigger > GameObject
         if (selectedForceGenerator)
         {
