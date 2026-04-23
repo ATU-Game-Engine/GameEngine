@@ -9,6 +9,8 @@
 #include "../include/Physics/ForceGeneratorRegistry.h"
 #include "../include/Physics/ForceGenerator.h"
 #include "../include/Rendering/PointLightRegistry.h"
+#include "../include/Physics/ConstraintPreset.h"
+#include "../include/Physics/Constraint.h"
 #include <unordered_map> 
 #include <iostream>
 #include <algorithm>  // std::min, std::max
@@ -308,7 +310,7 @@ void Scene::setObjectScale(GameObject* obj, const glm::vec3& newScale) {
     glm::vec3 collisionSize = newScale * physicsScale;
     // Resize the rigid body
     btRigidBody* newBody = physicsWorld.resizeRigidBody(
-        oldBody,
+        obj,
         obj->getShapeType(),
         collisionSize,
         mass,
@@ -723,7 +725,7 @@ void Scene::setObjectPhysicsScale(GameObject* obj, const glm::vec3& newPhysicsSc
 
     // Resize the rigid body
     btRigidBody* newBody = physicsWorld.resizeRigidBody(
-        oldBody,
+        obj,
         obj->getShapeType(),
         newCollisionSize,
         mass,
@@ -926,6 +928,78 @@ bool Scene::saveToFile(const std::string& path) const
         }
         sceneJson["forceGenerators"].push_back(g);
     }
+    sceneJson["constraints"] = json::array();
+    for (Constraint* c : ConstraintRegistry::getInstance().getAllConstraints())
+    {
+        if (!c) continue;
+
+        json con;
+        con["name"] = c->getName();
+        con["type"] = static_cast<int>(c->getType());
+
+        // Body references by ID (nullptr bodyB = world anchor)
+        con["bodyA_ID"] = c->getBodyA() ? c->getBodyA()->getID() : 0;
+        con["bodyB_ID"] = c->getBodyB() ? c->getBodyB()->getID() : 0;
+
+        // Frames
+        btTransform fA = c->getFrameInA();
+        btTransform fB = c->getFrameInB();
+
+        auto serializeTransform = [](const btTransform& t) -> json {
+            btVector3 o = t.getOrigin();
+            btQuaternion r = t.getRotation();
+            return {
+                {"origin",   {o.x(), o.y(), o.z()}},
+                {"rotation", {r.x(), r.y(), r.z(), r.w()}}
+            };
+            };
+
+        con["frameInA"] = serializeTransform(fA);
+        con["frameInB"] = serializeTransform(fB);
+        con["useLinearReferenceFrameA"] = c->getUseLinearReferenceFrameA();
+
+        // Breaking
+        con["breakable"] = c->isBreakable();
+        con["breakForce"] = c->getBreakForce();
+        con["breakTorque"] = c->getBreakTorque();
+
+        // Type-specific params
+        switch (c->getType())
+        {
+        case ConstraintType::HINGE: {
+            HingeParams p = c->getHingeParams();
+            con["hinge"]["useLimits"] = p.useLimits;
+            con["hinge"]["lowerLimit"] = p.lowerLimit;
+            con["hinge"]["upperLimit"] = p.upperLimit;
+            con["hinge"]["useMotor"] = p.useMotor;
+            con["hinge"]["motorTargetVelocity"] = p.motorTargetVelocity;
+            con["hinge"]["motorMaxImpulse"] = p.motorMaxImpulse;
+            break;
+        }
+        case ConstraintType::SLIDER: {
+            SliderParams p = c->getSliderParams();
+            con["slider"]["useLimits"] = p.useLimits;
+            con["slider"]["lowerLimit"] = p.lowerLimit;
+            con["slider"]["upperLimit"] = p.upperLimit;
+            con["slider"]["useMotor"] = p.useMotor;
+            con["slider"]["motorTargetVelocity"] = p.motorTargetVelocity;
+            con["slider"]["motorMaxForce"] = p.motorMaxForce;
+            break;
+        }
+        case ConstraintType::SPRING: {
+            SpringParams p = c->getSpringParams();
+            for (int i = 0; i < 6; ++i) {
+                con["spring"]["enableSpring"][i] = p.enableSpring[i];
+                con["spring"]["stiffness"][i] = p.stiffness[i];
+                con["spring"]["damping"][i] = p.damping[i];
+            }
+            break;
+        }
+        default: break;
+        }  
+
+        sceneJson["constraints"].push_back(con);  
+    }  
     std::filesystem::create_directories(std::filesystem::path(path).parent_path());
 
     std::ofstream file(path);
@@ -1037,8 +1111,11 @@ bool Scene::loadFromFile(const std::string& path)
             }
         }
 
-       
-
+        if (o.contains("id"))
+        {
+            uint64_t savedID = o["id"].get<uint64_t>();
+            obj->setID(savedID);
+        }
         obj->setRotation(rotation);
 
         if (o.contains("name"))
@@ -1209,6 +1286,147 @@ bool Scene::loadFromFile(const std::string& path)
         }
         std::cout << "Force generators loaded successfully" << std::endl;
     }
+    if (sceneJson.contains("constraints"))
+    {
+        // Build ID -> GameObject* map for resolving references
+        std::unordered_map<uint64_t, GameObject*> idMap;
+        for (auto& obj : gameObjects)
+            idMap[obj->getID()] = obj.get();
+
+        for (const auto& con : sceneJson["constraints"])
+        {
+            uint64_t idA = con["bodyA_ID"];
+            uint64_t idB = con["bodyB_ID"];
+
+            GameObject* objA = idMap.count(idA) ? idMap[idA] : nullptr;
+            GameObject* objB = idMap.count(idB) ? idMap[idB] : nullptr;
+
+            if (!objA) {
+                std::cerr << "Constraint load: bodyA ID " << idA << " not found, skipping\n";
+                continue;
+            }
+
+            auto deserializeTransform = [](const json& j) -> btTransform {
+                btTransform t;
+                t.setOrigin(btVector3(j["origin"][0], j["origin"][1], j["origin"][2]));
+                t.setRotation(btQuaternion(j["rotation"][0], j["rotation"][1],
+                    j["rotation"][2], j["rotation"][3]));
+                return t;
+                };
+
+            btTransform fA = deserializeTransform(con["frameInA"]);
+            btTransform fB = deserializeTransform(con["frameInB"]);
+            bool useA = con.value("useLinearReferenceFrameA", true);
+
+            ConstraintType type = static_cast<ConstraintType>(con["type"].get<int>());
+
+            std::unique_ptr<Constraint> c;
+
+            switch (type)
+            {
+            case ConstraintType::FIXED: {
+                btRigidBody* rbA = objA->getRigidBody();
+                btRigidBody* rbB = objB ? objB->getRigidBody() : &btTypedConstraint::getFixedBody();
+                auto* bullet = new btFixedConstraint(*rbA, *rbB, fA, fB);
+                c = std::make_unique<Constraint>(bullet, ConstraintType::FIXED, objA, objB);
+                break;
+            }
+            case ConstraintType::HINGE: {
+                HingeParams p;
+                if (con.contains("hinge")) {
+                    p.useLimits = con["hinge"]["useLimits"];
+                    p.lowerLimit = con["hinge"]["lowerLimit"];
+                    p.upperLimit = con["hinge"]["upperLimit"];
+                    p.useMotor = con["hinge"]["useMotor"];
+                    p.motorTargetVelocity = con["hinge"]["motorTargetVelocity"];
+                    p.motorMaxImpulse = con["hinge"]["motorMaxImpulse"];
+                }
+                btRigidBody* rbA = objA->getRigidBody();
+                btRigidBody* rbB = objB ? objB->getRigidBody() : &btTypedConstraint::getFixedBody();
+                auto* hinge = new btHingeConstraint(*rbA, *rbB, fA, fB);
+                if (p.useLimits)
+                    hinge->setLimit(p.lowerLimit, p.upperLimit);
+                if (p.useMotor) {
+                    hinge->enableMotor(true);
+                    hinge->setMotorTarget(p.motorTargetVelocity, 1.0f);
+                    hinge->setMaxMotorImpulse(p.motorMaxImpulse);
+                }
+                c = std::make_unique<Constraint>(hinge, ConstraintType::HINGE, objA, objB);
+                break;
+            }
+            case ConstraintType::SLIDER: {
+                SliderParams p;
+                if (con.contains("slider")) {
+                    p.useLimits = con["slider"]["useLimits"];
+                    p.lowerLimit = con["slider"]["lowerLimit"];
+                    p.upperLimit = con["slider"]["upperLimit"];
+                    p.useMotor = con["slider"]["useMotor"];
+                    p.motorTargetVelocity = con["slider"]["motorTargetVelocity"];
+                    p.motorMaxForce = con["slider"]["motorMaxForce"];
+                }
+                btRigidBody* rbA = objA->getRigidBody();
+                btRigidBody* rbB = objB ? objB->getRigidBody() : &btTypedConstraint::getFixedBody();
+                auto* slider = new btSliderConstraint(*rbA, *rbB, fA, fB, useA);
+                if (p.useLimits) {
+                    slider->setLowerLinLimit(p.lowerLimit);
+                    slider->setUpperLinLimit(p.upperLimit);
+                }
+                if (p.useMotor) {
+                    slider->setPoweredLinMotor(true);
+                    slider->setTargetLinMotorVelocity(p.motorTargetVelocity);
+                    slider->setMaxLinMotorForce(p.motorMaxForce);
+                }
+                c = std::make_unique<Constraint>(slider, ConstraintType::SLIDER, objA, objB);
+                break;
+            }
+            case ConstraintType::SPRING: {
+                SpringParams p;
+                if (con.contains("spring")) {
+                    for (int i = 0; i < 6; ++i) {
+                        p.enableSpring[i] = con["spring"]["enableSpring"][i];
+                        p.stiffness[i] = con["spring"]["stiffness"][i];
+                        p.damping[i] = con["spring"]["damping"][i];
+                    }
+                }
+                btRigidBody* rbA = objA->getRigidBody();
+                btRigidBody* rbB = objB ? objB->getRigidBody() : &btTypedConstraint::getFixedBody();
+                auto* spring = new btGeneric6DofSpringConstraint(*rbA, *rbB, fA, fB, useA);
+                for (int i = 0; i < 6; ++i) {
+                    if (p.enableSpring[i]) {
+                        spring->enableSpring(i, true);
+                        spring->setStiffness(i, p.stiffness[i]);
+                        spring->setDamping(i, p.damping[i]);
+                    }
+                }
+                spring->setEquilibriumPoint();
+                c = std::make_unique<Constraint>(spring, ConstraintType::SPRING, objA, objB);
+                break;
+            }
+            case ConstraintType::GENERIC_6DOF: {
+                btRigidBody* rbA = objA->getRigidBody();
+                btRigidBody* rbB = objB ? objB->getRigidBody() : &btTypedConstraint::getFixedBody();
+                auto* dof6 = new btGeneric6DofConstraint(*rbA, *rbB, fA, fB, useA);
+                c = std::make_unique<Constraint>(dof6, ConstraintType::GENERIC_6DOF, objA, objB);
+                break;
+            }
+            default: break;
+            }
+
+            if (!c) continue;
+
+            // Restore frames and name
+            c->setFrames(fA, fB, useA);
+            if (con.contains("name"))
+                c->setName(con["name"]);
+
+            // Restore breaking thresholds
+            if (con.value("breakable", false))
+                c->setBreakingThreshold(con["breakForce"], con["breakTorque"]);
+
+            ConstraintRegistry::getInstance().addConstraint(std::move(c));
+        }
+        std::cout << "Constraints loaded successfully" << std::endl;
+    }
 
     std::cout << "Applying transforms..." << std::endl;
     // --- Apply exact transforms to physics bodies (NO simulation) ---
@@ -1236,6 +1454,10 @@ bool Scene::loadFromFile(const std::string& path)
             }
         }
     }
+    uint64_t maxID = 0;
+    for (auto& obj : gameObjects)
+        maxID = std::max(maxID, obj->getID());
+    GameObject::setNextID(maxID + 1);
     std::cout << "loadFromFile complete." << std::endl;
     return true;
 }

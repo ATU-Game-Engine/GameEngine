@@ -756,8 +756,18 @@ void Renderer::drawConstraintDebug(const std::vector<Constraint*>& constraints,c
 		GameObject* B = c->getBodyB();
 		if (!A) continue;
 
-		glm::vec3 posA = A->getPosition();
-		glm::vec3 posB = B ? B->getPosition() : glm::vec3(0.0f);
+		btTransform worldA = A->getRigidBody()
+			? A->getRigidBody()->getWorldTransform()
+			: btTransform::getIdentity();
+		btTransform worldB = (B && B->getRigidBody())
+			? B->getRigidBody()->getWorldTransform()
+			: btTransform::getIdentity();
+		btVector3 pivotA_world = worldA * c->getFrameInA().getOrigin();
+		btVector3 pivotB_world = worldB * c->getFrameInB().getOrigin();
+		glm::vec3 posA = glm::vec3(pivotA_world.x(), pivotA_world.y(), pivotA_world.z());
+		glm::vec3 posB = glm::vec3(pivotB_world.x(), pivotB_world.y(), pivotB_world.z());
+		glm::vec3 centerA = A->getPosition();                 
+		glm::vec3 centerB = B ? B->getPosition() : glm::vec3(0.0f); 
 
 		
 		glm::vec3 col;
@@ -784,30 +794,50 @@ void Renderer::drawConstraintDebug(const std::vector<Constraint*>& constraints,c
 		drawCross(posA, markerSize);
 		drawCross(posB, markerSize);
 
+		glUniform3f(colorLoc, col.r * 0.4f, col.g * 0.4f, col.b * 0.4f);
+		drawLine(centerA, posA);
+		if (B) drawLine(centerB, posB);
+		glUniform3f(colorLoc, col.r, col.g, col.b);
 		//  Hinge: axis line through bodyA
 		if (c->getType() == ConstraintType::HINGE)
 		{
-			// Same pink as the hinge so it reads as part of it
-			glUniform3f(colorLoc, 0.9f, 0.1f, 0.5f);
-			drawLine(posA - glm::vec3(0, 0.4f, 0), posA + glm::vec3(0, 0.4f, 0));
-			glUniform3f(colorLoc, col.r, col.g, col.b); // restore
+			btTransform frameWorld = worldA * c->getFrameInA();
+			btVector3 axisWorld = frameWorld.getBasis() * btVector3(0, 0, 1);
+			glm::vec3 axis = glm::vec3(axisWorld.x(), axisWorld.y(), axisWorld.z());
+			glUniform3f(colorLoc, 1.0f, 0.3f, 0.6f);
+			glLineWidth(3.0f);
+			drawLine(posA - axis * 0.4f, posA + axis * 0.4f);
+			glLineWidth(2.0f);
+			glUniform3f(colorLoc, col.r, col.g, col.b);
 		}
 
 		// Slider: dashed line along the slide axis
 		if (c->getType() == ConstraintType::SLIDER)
 		{
+			btTransform frameWorld = worldA * c->getFrameInA();
+			btVector3 axisWorld = frameWorld.getBasis() * btVector3(1, 0, 0); // slider is local X
+			glm::vec3 axis = glm::vec3(axisWorld.x(), axisWorld.y(), axisWorld.z());
+
 			float segLen = glm::length(posB - posA);
-			if (segLen > 0.001f)
+			float halfLen = std::max(segLen, 0.5f);
+
+			// Dashed line along actual axis
+			float dashLen = 0.15f, gap = 0.15f;
+			glm::vec3 start = posA - axis * halfLen;
+			float totalLen = halfLen * 2.0f;
+
+			for (float t = 0.0f; t < totalLen; t += dashLen + gap)
 			{
-				glm::vec3 dir = (posB - posA) / segLen;
-				float     dashLen = 0.15f, gap = 0.15f;
-				for (float t = 0.0f; t < segLen; t += dashLen + gap)
-				{
-					glm::vec3 start = posA + dir * t;
-					glm::vec3 end = posA + dir * std::min(t + dashLen, segLen);
-					drawLine(start, end);
-				}
+				glm::vec3 a = start + axis * t;
+				glm::vec3 b = start + axis * std::min(t + dashLen, totalLen);
+				drawLine(a, b);
 			}
+			// Bright axis line at full width to show direction clearly
+			glLineWidth(3.0f);
+			glUniform3f(colorLoc, 0.0f, 1.0f, 0.8f);
+			drawLine(posA - axis * 0.3f, posA + axis * 0.3f);
+			glLineWidth(2.0f);
+			glUniform3f(colorLoc, col.r, col.g, col.b);
 		}
 
 		//  Spring: zigzag coil between the two bodies 

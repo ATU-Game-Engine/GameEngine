@@ -56,7 +56,7 @@ public:
 
     // Rigid body management
     btRigidBody* resizeRigidBody(
-        btRigidBody* oldBody,
+        GameObject* owner,
         ShapeType type,
         const glm::vec3& newScale,
         float mass,
@@ -79,6 +79,8 @@ public:
 
     // Get number of active rigid bodies
     int getRigidBodyCount() const;
+
+	
 
 };
 

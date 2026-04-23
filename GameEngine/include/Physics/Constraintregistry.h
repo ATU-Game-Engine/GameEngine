@@ -40,6 +40,8 @@ public:
     void clearAll();
     void removeConstraintsForObject(GameObject* obj);
 
+	// rebuild all constraints involving this object (e.g. after resizing or replacing a rigid body)
+    void rebuildConstraintsForObject(GameObject* obj);
     // Queries
     int getConstraintCount() const { return constraints.size(); }
     Constraint* findConstraintByName(const std::string& name) const;
@@ -49,6 +51,7 @@ public:
     std::vector<Constraint*> getAllConstraints() const;
     bool hasConstraint(const std::string& name) const;
 
+    void detachConstraintsFromWorld(GameObject* obj);
     // Update
     void update();
 

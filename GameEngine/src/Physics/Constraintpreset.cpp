@@ -3,6 +3,10 @@
 #include <iostream>
 #include <glm/gtc/constants.hpp>
 
+inline glm::vec3 toGlm(const btVector3& v)
+{
+    return glm::vec3(v.x(), v.y(), v.z());
+}
 //  FIXED Constraints 
 
 std::unique_ptr<Constraint> ConstraintPreset::createFixed(
@@ -43,6 +47,7 @@ std::unique_ptr<Constraint> ConstraintPreset::createFixed(
     auto constraint = std::make_unique<Constraint>(
         fixedConstraint, ConstraintType::FIXED, objA, objB
     );
+    constraint->setFrames(frameInA, frameInB, true);
 	//return ownship of pointer
     std::cout << "Created FIXED constraint" << std::endl;
     return constraint;
@@ -66,9 +71,12 @@ std::unique_ptr<Constraint> ConstraintPreset::createHinge(
 
 	// if we have two bodies, create hinge between them, otherwise hinge to world
     if (rbB) {
+        // Convert pivotA from A's local space to world space, then into B's local space
+        btVector3 worldPivot = rbA->getWorldTransform() * toBullet(params.pivotA);
+        btVector3 localPivotB = rbB->getWorldTransform().inverse() * worldPivot;
         hinge = new btHingeConstraint(
             *rbA, *rbB,
-            toBullet(params.pivotA), toBullet(params.pivotB),
+            toBullet(params.pivotA), localPivotB,
             toBullet(params.axisA), toBullet(params.axisB)
         );
     }
@@ -95,6 +103,7 @@ std::unique_ptr<Constraint> ConstraintPreset::createHinge(
     auto constraint = std::make_unique<Constraint>(
         hinge, ConstraintType::HINGE, objA, objB
     );
+    constraint->setFrames(hinge->getAFrame(), hinge->getBFrame(), true);
 
     std::cout << "Created HINGE constraint";
     if (params.useLimits) {
@@ -113,11 +122,19 @@ std::unique_ptr<Constraint> ConstraintPreset::createHinge(
         std::cerr << "Error: Cannot create hinge - objA missing or no physics" << std::endl;
         return nullptr;
     }
-
+    btRigidBody* rbA = objA->getRigidBody();
     // Convert world-space pivot to local space
     HingeParams params;
-    params.pivotA = worldPivot - objA->getPosition();
-    params.axisA = glm::normalize(worldAxis);
+    btTransform worldTransformA = rbA->getWorldTransform();
+    btVector3 localPivotA = worldTransformA.inverse() * toBullet(worldPivot);
+    params.pivotA = toGlm(localPivotA);
+
+    glm::vec3 axis = worldAxis;
+    if (glm::length(axis) > 0.0001f)
+        axis = glm::normalize(axis);
+
+    params.axisA = axis;
+
 
     if (objB && objB->hasPhysics()) {
         params.pivotB = worldPivot - objB->getPosition();
@@ -177,7 +194,7 @@ std::unique_ptr<Constraint> ConstraintPreset::createSlider(
     auto constraint = std::make_unique<Constraint>(
         slider, ConstraintType::SLIDER, objA, objB
     );
-
+    constraint->setFrames(frameInA, frameInB, true);
     std::cout << "Created SLIDER constraint";
     if (params.useLimits) {
         std::cout << " with limits [" << params.lowerLimit << ", " << params.upperLimit << "]";
@@ -233,6 +250,7 @@ std::unique_ptr<Constraint> ConstraintPreset::createSpring(
     auto constraint = std::make_unique<Constraint>(
         spring, ConstraintType::SPRING, objA, objB
     );
+    constraint->setFrames(frameInA, frameInB, true);
 
     int activeSpringCount = 0;
     for (int i = 0; i < 6; ++i) {
@@ -291,33 +309,33 @@ std::unique_ptr<Constraint> ConstraintPreset::createGeneric6Dof(
     );
 
     // Apply linear limits
+     btVector3 linearLower(0, 0, 0);
+    btVector3 linearUpper(0, 0, 0);
     for (int i = 0; i < 3; ++i) {
         if (params.useLinearLimits[i]) {
-            btVector3 lower(0, 0, 0);
-            btVector3 upper(0, 0, 0);
-            lower[i] = params.lowerLinearLimit[i];
-            upper[i] = params.upperLinearLimit[i];
-            dof6->setLinearLowerLimit(lower);
-            dof6->setLinearUpperLimit(upper);
+            linearLower[i] = params.lowerLinearLimit[i];
+            linearUpper[i] = params.upperLinearLimit[i];
         }
     }
+    dof6->setLinearLowerLimit(linearLower);
+    dof6->setLinearUpperLimit(linearUpper);
 
     // Apply angular limits
+    btVector3 angularLower(0, 0, 0);
+    btVector3 angularUpper(0, 0, 0);
     for (int i = 0; i < 3; ++i) {
         if (params.useAngularLimits[i]) {
-            btVector3 lower(0, 0, 0);
-            btVector3 upper(0, 0, 0);
-            lower[i] = params.lowerAngularLimit[i];
-            upper[i] = params.upperAngularLimit[i];
-            dof6->setAngularLowerLimit(lower);
-            dof6->setAngularUpperLimit(upper);
+            angularLower[i] = params.lowerAngularLimit[i];
+            angularUpper[i] = params.upperAngularLimit[i];
         }
     }
+    dof6->setAngularLowerLimit(angularLower);
+    dof6->setAngularUpperLimit(angularUpper);
 
     auto constraint = std::make_unique<Constraint>(
         dof6, ConstraintType::GENERIC_6DOF, objA, objB
     );
-
+    constraint->setFrames(frameInA, frameInB, true);
     std::cout << "Created GENERIC_6DOF constraint" << std::endl;
 
     return constraint;

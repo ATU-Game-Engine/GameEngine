@@ -138,24 +138,23 @@ btRigidBody* Physics::createRigidBody(
     return body;
 }
 
+
 btRigidBody* Physics::resizeRigidBody(
-    btRigidBody* oldBody,
+    GameObject* owner,
     ShapeType type,
     const glm::vec3& newScale,
     float mass,
     const std::string& materialName)
 {
-    if (!oldBody) {
-        std::cerr << "Error: Cannot resize null rigid body" << std::endl;
-        return nullptr;
-    }
+    if (!owner || !owner->getRigidBody()) return nullptr;
 
+    btRigidBody* oldBody = owner->getRigidBody();
     // Save current state
     btTransform transform;
     oldBody->getMotionState()->getWorldTransform(transform);
-
     btVector3 linearVel = oldBody->getLinearVelocity();
     btVector3 angularVel = oldBody->getAngularVelocity();
+
 
     bool isActive = oldBody->isActive();
     float linearDamping = oldBody->getLinearDamping();
@@ -165,7 +164,8 @@ btRigidBody* Physics::resizeRigidBody(
         << transform.getOrigin().x() << ", "
         << transform.getOrigin().y() << ", "
         << transform.getOrigin().z() << ")" << std::endl;
-
+	// Detach constraints before removing the body, so they can be properly rebuilt with the new body
+    ConstraintRegistry::getInstance().detachConstraintsFromWorld(owner);
     //  Remove old body
     removeRigidBody(oldBody);
     
@@ -196,9 +196,9 @@ btRigidBody* Physics::resizeRigidBody(
     if (isActive) {
         newBody->activate(true);
     }
-
+    owner->setRigidBody(newBody);
     std::cout << "Rigid body resized successfully" << std::endl;
-
+    ConstraintRegistry::getInstance().rebuildConstraintsForObject(owner);
     return newBody;
 }
 

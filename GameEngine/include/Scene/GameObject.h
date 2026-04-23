@@ -220,10 +220,19 @@ public:
     const std::string& getName() const { return name; }
     void setName(const std::string& newName) { name = newName; }
 
+	// allow for manually setting ID (used by Scene when loading from file to preserve original IDs)
+    void setID(uint64_t newID) { id = newID; }
+    static void setNextID(uint64_t nextVal) { nextID = nextVal; }
     // Physics shortcuts
+    void setRigidBody(btRigidBody* body) {
+        if (physics) {
+            physics->setRigidBody(body);
+        }
+    }
     btRigidBody* getRigidBody() const {
         return physics ? physics->getRigidBody() : nullptr;
     }
+
     std::string getMaterialName() const {
         return physics ? physics->getMaterialName() : "";
     }

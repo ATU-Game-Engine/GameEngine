@@ -17,9 +17,19 @@ private:
     GameObject* bodyB;
     std::string name;
 
+    // Cache for reconstruction
+    btTransform frameInA;
+    btTransform frameInB;
+    bool useLinearReferenceFrameA;
+
     bool breakable;
     float breakForce;
     float breakTorque;
+
+    // Parameter Structs 
+    HingeParams hingeParams;
+    SliderParams sliderParams;
+    SpringParams springParams;
 
 public:
     Constraint(btTypedConstraint* bulletConstraint,
@@ -32,16 +42,27 @@ public:
     Constraint(const Constraint&) = delete;
     Constraint& operator=(const Constraint&) = delete;
 
+	//rebuilding constraint when a body is resized or replaced - updates the cached frames and rebuilds the bullet constraint
+    void setFrames(const btTransform& fA, const btTransform& fB, bool useA = true);
+    void rebuild();
+
     // Getters
     btTypedConstraint* getBulletConstraint() const { return constraint; }
     ConstraintType getType() const { return type; }
     GameObject* getBodyA() const { return bodyA; }
     GameObject* getBodyB() const { return bodyB; }
     const std::string& getName() const { return name; }
+    bool isBroken() const;
     bool isBreakable() const { return breakable; }
     float getBreakForce() const { return breakForce; }
     float getBreakTorque() const { return breakTorque; }
-    bool isBroken() const;
+
+    const btTransform& getFrameInA() const { return frameInA; }
+    const btTransform& getFrameInB() const { return frameInB; }
+    bool getUseLinearReferenceFrameA() const { return useLinearReferenceFrameA; }
+    const HingeParams& getHingeParams()  const { return hingeParams; }
+    const SliderParams& getSliderParams() const { return sliderParams; }
+    const SpringParams& getSpringParams() const { return springParams; }
 
     // Setters
     void setName(const std::string& newName) { name = newName; }
@@ -65,6 +86,7 @@ public:
 
     // Debug
     void printInfo() const;
+
 };
 
 // Helper conversion functions

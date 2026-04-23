@@ -1,4 +1,50 @@
 {
+    "constraints": [
+        {
+            "bodyA_ID": 14,
+            "bodyB_ID": 33,
+            "breakForce": null,
+            "breakTorque": null,
+            "breakable": false,
+            "frameInA": {
+                "origin": [
+                    -9.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    -0.7071067690849304,
+                    0.0,
+                    -0.0,
+                    0.7071067690849304
+                ]
+            },
+            "frameInB": {
+                "origin": [
+                    1.3455696105957031,
+                    0.38868236541748047,
+                    -0.002360820770263672
+                ],
+                "rotation": [
+                    -0.7071067690849304,
+                    0.0,
+                    0.0,
+                    0.7071067690849304
+                ]
+            },
+            "hinge": {
+                "lowerLimit": -1.5707963705062866,
+                "motorMaxImpulse": 0.0,
+                "motorTargetVelocity": 0.0,
+                "upperLimit": 2.094395160675049,
+                "useLimits": true,
+                "useMotor": false
+            },
+            "name": "",
+            "type": 1,
+            "useLinearReferenceFrameA": true
+        }
+    ],
     "directionalLight": {
         "colour": [
             1.0,
@@ -15,7 +61,7 @@
     "forceGenerators": [],
     "objects": [
         {
-            "id": 32,
+            "id": 3,
             "name": "Ground",
             "physics": {
                 "enabled": true,
@@ -55,7 +101,7 @@
             }
         },
         {
-            "id": 33,
+            "id": 4,
             "name": "Player",
             "physics": {
                 "enabled": true,
@@ -79,15 +125,15 @@
             ],
             "transform": {
                 "position": [
-                    -1.6656880378723145,
-                    2.6802778244018555,
-                    18.467628479003906
+                    -16.679508209228516,
+                    0.8999992609024048,
+                    16.72229766845703
                 ],
                 "rotation": [
-                    -0.3989868760108948,
-                    1.6542259118068614e-07,
-                    0.9169567227363586,
-                    -6.38478582004609e-07
+                    0.754996120929718,
+                    8.46174430080282e-07,
+                    0.6557292938232422,
+                    -5.784285121990251e-07
                 ],
                 "scale": [
                     1.0,
@@ -97,7 +143,7 @@
             }
         },
         {
-            "id": 34,
+            "id": 5,
             "name": "Wall_Outer_North",
             "physics": {
                 "enabled": true,
@@ -131,13 +177,13 @@
                 ],
                 "scale": [
                     42.0,
-                    4.0,
+                    15.0,
                     1.0
                 ]
             }
         },
         {
-            "id": 35,
+            "id": 6,
             "name": "Wall_Outer_South",
             "physics": {
                 "enabled": true,
@@ -171,13 +217,13 @@
                 ],
                 "scale": [
                     42.0,
-                    5.0,
+                    14.0,
                     1.0
                 ]
             }
         },
         {
-            "id": 36,
+            "id": 7,
             "name": "Wall_Outer_West",
             "physics": {
                 "enabled": true,
@@ -211,13 +257,13 @@
                 ],
                 "scale": [
                     1.0,
-                    5.0,
+                    15.0,
                     42.0
                 ]
             }
         },
         {
-            "id": 37,
+            "id": 8,
             "name": "Wall_Outer_East",
             "physics": {
                 "enabled": true,
@@ -251,13 +297,13 @@
                 ],
                 "scale": [
                     1.0,
-                    4.0,
+                    15.0,
                     42.0
                 ]
             }
         },
         {
-            "id": 38,
+            "id": 9,
             "name": "Wall_H1a",
             "physics": {
                 "enabled": true,
@@ -291,13 +337,13 @@
                 ],
                 "scale": [
                     21.0,
-                    4.0,
+                    15.0,
                     1.0
                 ]
             }
         },
         {
-            "id": 39,
+            "id": 10,
             "name": "Wall_H1b",
             "physics": {
                 "enabled": true,
@@ -331,13 +377,13 @@
                 ],
                 "scale": [
                     15.0,
-                    4.0,
+                    15.0,
                     1.0
                 ]
             }
         },
         {
-            "id": 40,
+            "id": 11,
             "name": "Wall_H2",
             "physics": {
                 "enabled": true,
@@ -359,7 +405,7 @@
             "tags": [],
             "transform": {
                 "position": [
-                    0.0,
+                    8.106231689453125e-05,
                     2.0,
                     -9.0
                 ],
@@ -371,13 +417,13 @@
                 ],
                 "scale": [
                     24.0,
-                    4.0,
+                    15.0,
                     1.0
                 ]
             }
         },
         {
-            "id": 41,
+            "id": 12,
             "name": "Wall_H3a",
             "physics": {
                 "enabled": true,
@@ -411,13 +457,13 @@
                 ],
                 "scale": [
                     15.0,
-                    4.0,
+                    15.0,
                     1.0
                 ]
             }
         },
         {
-            "id": 42,
+            "id": 13,
             "name": "Wall_H3b",
             "physics": {
                 "enabled": true,
@@ -451,13 +497,13 @@
                 ],
                 "scale": [
                     15.0,
-                    4.0,
+                    15.0,
                     1.0
                 ]
             }
         },
         {
-            "id": 43,
+            "id": 14,
             "name": "Wall_H4",
             "physics": {
                 "enabled": true,
@@ -491,13 +537,13 @@
                 ],
                 "scale": [
                     18.0,
-                    4.0,
+                    15.0,
                     1.0
                 ]
             }
         },
         {
-            "id": 44,
+            "id": 15,
             "name": "Wall_H6",
             "physics": {
                 "enabled": true,
@@ -531,13 +577,13 @@
                 ],
                 "scale": [
                     24.0,
-                    5.0,
+                    15.0,
                     1.0
                 ]
             }
         },
         {
-            "id": 45,
+            "id": 16,
             "name": "Wall_V1a",
             "physics": {
                 "enabled": true,
@@ -571,13 +617,13 @@
                 ],
                 "scale": [
                     1.0,
-                    4.0,
+                    15.0,
                     12.0
                 ]
             }
         },
         {
-            "id": 46,
+            "id": 17,
             "name": "Wall_V1b",
             "physics": {
                 "enabled": true,
@@ -611,13 +657,13 @@
                 ],
                 "scale": [
                     1.0,
-                    5.0,
+                    15.0,
                     15.0
                 ]
             }
         },
         {
-            "id": 47,
+            "id": 18,
             "name": "Wall_V2b",
             "physics": {
                 "enabled": true,
@@ -651,13 +697,13 @@
                 ],
                 "scale": [
                     1.0,
-                    4.0,
+                    15.0,
                     6.0
                 ]
             }
         },
         {
-            "id": 48,
+            "id": 19,
             "name": "Wall_V3",
             "physics": {
                 "enabled": true,
@@ -691,13 +737,13 @@
                 ],
                 "scale": [
                     1.0,
-                    4.0,
+                    15.0,
                     12.0
                 ]
             }
         },
         {
-            "id": 49,
+            "id": 20,
             "name": "Wall_V4a",
             "physics": {
                 "enabled": true,
@@ -731,13 +777,13 @@
                 ],
                 "scale": [
                     1.0,
-                    4.0,
+                    15.0,
                     6.0
                 ]
             }
         },
         {
-            "id": 50,
+            "id": 21,
             "name": "Wall_V4b",
             "physics": {
                 "enabled": true,
@@ -771,13 +817,13 @@
                 ],
                 "scale": [
                     1.0,
-                    4.0,
+                    15.0,
                     12.0
                 ]
             }
         },
         {
-            "id": 51,
+            "id": 22,
             "name": "Wall_V5",
             "physics": {
                 "enabled": true,
@@ -811,13 +857,13 @@
                 ],
                 "scale": [
                     1.0,
-                    4.0,
+                    15.0,
                     6.0
                 ]
             }
         },
         {
-            "id": 52,
+            "id": 23,
             "name": "Wall_V5b",
             "physics": {
                 "enabled": true,
@@ -851,13 +897,13 @@
                 ],
                 "scale": [
                     1.0,
-                    4.0,
+                    15.0,
                     12.0
                 ]
             }
         },
         {
-            "id": 53,
+            "id": 24,
             "name": "Wall_V6",
             "physics": {
                 "enabled": true,
@@ -891,13 +937,13 @@
                 ],
                 "scale": [
                     1.0,
-                    4.0,
+                    15.0,
                     24.0
                 ]
             }
         },
         {
-            "id": 54,
+            "id": 25,
             "name": "",
             "physics": {
                 "enabled": false,
@@ -935,7 +981,7 @@
             }
         },
         {
-            "id": 55,
+            "id": 26,
             "name": "Cube_205",
             "physics": {
                 "enabled": true,
@@ -958,7 +1004,7 @@
             "transform": {
                 "position": [
                     -382.2080993652344,
-                    -870616.75,
+                    -974275.75,
                     17.95427894592285
                 ],
                 "rotation": [
@@ -975,7 +1021,7 @@
             }
         },
         {
-            "id": 56,
+            "id": 27,
             "name": "Cube_62",
             "physics": {
                 "enabled": true,
@@ -1015,7 +1061,7 @@
             }
         },
         {
-            "id": 57,
+            "id": 28,
             "name": "Cube_123",
             "physics": {
                 "enabled": true,
@@ -1055,7 +1101,7 @@
             }
         },
         {
-            "id": 58,
+            "id": 29,
             "name": "Cube_124",
             "physics": {
                 "enabled": true,
@@ -1095,7 +1141,7 @@
             }
         },
         {
-            "id": 59,
+            "id": 30,
             "name": "Cube_125",
             "physics": {
                 "enabled": true,
@@ -1131,6 +1177,46 @@
                     6.0,
                     0.5,
                     2.0
+                ]
+            }
+        },
+        {
+            "id": 33,
+            "name": "Cube_33",
+            "physics": {
+                "enabled": true,
+                "mass": 10.0,
+                "material": "Concrete",
+                "physicsScale": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "render": {
+                "modelPath": "",
+                "normal": "",
+                "specular": "",
+                "texture": ""
+            },
+            "shape": 0,
+            "tags": [],
+            "transform": {
+                "position": [
+                    -13.345569610595703,
+                    1.6113176345825195,
+                    3.0023608207702637
+                ],
+                "rotation": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0
+                ],
+                "scale": [
+                    1.5,
+                    2.0,
+                    1.0
                 ]
             }
         }

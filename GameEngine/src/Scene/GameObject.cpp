@@ -139,6 +139,7 @@ void GameObject::setRotation(const glm::quat& newRot)
     }
 }
 
+
 // scripts
 
 void GameObject::updateScripts(float dt)

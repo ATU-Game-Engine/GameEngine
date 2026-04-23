@@ -185,34 +185,62 @@ bool ConstraintRegistry::hasConstraint(const std::string& name) const {
     return nameIndex.find(name) != nameIndex.end();
 }
 
+void ConstraintRegistry::rebuildConstraintsForObject(GameObject* obj) {
+    if (!obj || !dynamicsWorld) return;
+
+    auto it = objectIndex.find(obj);
+    if (it == objectIndex.end()) return;
+
+    // Use a copy of the pointers to avoid iterator invalidation issues
+    std::vector<Constraint*> affected = it->second;
+
+    for (Constraint* c : affected) {
+        
+        // Re-trigger the internal reconstruction
+		// This will update the cached frames and create a new Bullet constraint
+        c->rebuild();
+
+        // Re-add to the world
+        if (c->getBulletConstraint()) {
+            dynamicsWorld->addConstraint(c->getBulletConstraint(), true);
+        }
+    }
+}
+
+// detach constraints from world without removing them from registry (e.g. when an object is being removed but we want to keep the constraint data for potential reuse)
+void ConstraintRegistry::detachConstraintsFromWorld(GameObject* obj) {
+    if (!obj || !dynamicsWorld) return;
+
+    auto it = objectIndex.find(obj);
+    if (it == objectIndex.end()) return;
+
+    for (Constraint* c : it->second) {
+        if (c->getBulletConstraint()) {
+            dynamicsWorld->removeConstraint(c->getBulletConstraint());
+        }
+    }
+}
+
 // Update 
 
-void ConstraintRegistry::update() {
-    // Check for broken constraints
-    for (auto it = constraints.begin(); it != constraints.end(); ) {
-        auto& constraint = *it;
+void ConstraintRegistry::update()
+{
+    for (auto it = constraints.begin(); it != constraints.end(); )
+    {
+        Constraint* c = it->get();
 
-        if (constraint && constraint->isBreakable()) {
-            btTypedConstraint* bulletConstraint = constraint->getBulletConstraint();
+        if (c && c->isBreakable())
+        {
+            btTypedConstraint* bc = c->getBulletConstraint();
 
-            // Check if constraint exceeded breaking threshold
-            if (bulletConstraint && !bulletConstraint->isEnabled()) {
-                std::cout << "Constraint broken: " << constraint->getName() << std::endl;
-
-                // Remove from indices
-                removeFromIndices(constraint.get());
-
-                // Remove from Bullet world
-                if (dynamicsWorld) {
-                    dynamicsWorld->removeConstraint(bulletConstraint);
-                }
-
-                // Remove from vector
-                it = constraints.erase(it);
+            if (bc && !bc->isEnabled())
+            {
+                std::cout << "Constraint broken: " << c->getName() << std::endl;
+                removeConstraint(c);
+                it = constraints.begin(); // safe restart after structural change
                 continue;
             }
         }
-
         ++it;
     }
 }
@@ -266,6 +294,9 @@ void ConstraintRegistry::printAllConstraints() const {
 
     std::cout << "=====================\n" << std::endl;
 }
+
+
+
 
 // ========== Private Helper Methods ==========
 
