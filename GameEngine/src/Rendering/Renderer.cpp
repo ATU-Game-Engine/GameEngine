@@ -428,7 +428,7 @@ void Renderer::drawTriggerDebug(const std::vector<Trigger*>& triggers, const Cam
 		}
 
 		glm::mat4 model = glm::translate(glm::mat4(1.0f), trigger->getPosition());
-		model = glm::scale(model, trigger->getSize());
+		model = glm::scale(model, trigger->getSize() * 2.0f);
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
 
 		cubeMesh.draw();

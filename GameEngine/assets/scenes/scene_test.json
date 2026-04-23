@@ -15,7 +15,7 @@
     "forceGenerators": [],
     "objects": [
         {
-            "id": 98,
+            "id": 32,
             "name": "Ground",
             "physics": {
                 "enabled": true,
@@ -55,7 +55,7 @@
             }
         },
         {
-            "id": 99,
+            "id": 33,
             "name": "Player",
             "physics": {
                 "enabled": true,
@@ -85,9 +85,9 @@
                 ],
                 "rotation": [
                     -0.3989868760108948,
-                    1.6542260539154086e-07,
-                    0.9169566035270691,
-                    -6.384785251611902e-07
+                    1.6542259118068614e-07,
+                    0.9169567227363586,
+                    -6.38478582004609e-07
                 ],
                 "scale": [
                     1.0,
@@ -97,7 +97,7 @@
             }
         },
         {
-            "id": 100,
+            "id": 34,
             "name": "Wall_Outer_North",
             "physics": {
                 "enabled": true,
@@ -137,7 +137,7 @@
             }
         },
         {
-            "id": 101,
+            "id": 35,
             "name": "Wall_Outer_South",
             "physics": {
                 "enabled": true,
@@ -177,7 +177,7 @@
             }
         },
         {
-            "id": 102,
+            "id": 36,
             "name": "Wall_Outer_West",
             "physics": {
                 "enabled": true,
@@ -217,7 +217,7 @@
             }
         },
         {
-            "id": 103,
+            "id": 37,
             "name": "Wall_Outer_East",
             "physics": {
                 "enabled": true,
@@ -257,7 +257,7 @@
             }
         },
         {
-            "id": 104,
+            "id": 38,
             "name": "Wall_H1a",
             "physics": {
                 "enabled": true,
@@ -297,7 +297,7 @@
             }
         },
         {
-            "id": 105,
+            "id": 39,
             "name": "Wall_H1b",
             "physics": {
                 "enabled": true,
@@ -337,7 +337,7 @@
             }
         },
         {
-            "id": 106,
+            "id": 40,
             "name": "Wall_H2",
             "physics": {
                 "enabled": true,
@@ -377,7 +377,7 @@
             }
         },
         {
-            "id": 107,
+            "id": 41,
             "name": "Wall_H3a",
             "physics": {
                 "enabled": true,
@@ -417,7 +417,7 @@
             }
         },
         {
-            "id": 108,
+            "id": 42,
             "name": "Wall_H3b",
             "physics": {
                 "enabled": true,
@@ -457,7 +457,7 @@
             }
         },
         {
-            "id": 109,
+            "id": 43,
             "name": "Wall_H4",
             "physics": {
                 "enabled": true,
@@ -497,7 +497,7 @@
             }
         },
         {
-            "id": 110,
+            "id": 44,
             "name": "Wall_H6",
             "physics": {
                 "enabled": true,
@@ -537,7 +537,7 @@
             }
         },
         {
-            "id": 111,
+            "id": 45,
             "name": "Wall_V1a",
             "physics": {
                 "enabled": true,
@@ -577,7 +577,7 @@
             }
         },
         {
-            "id": 112,
+            "id": 46,
             "name": "Wall_V1b",
             "physics": {
                 "enabled": true,
@@ -617,7 +617,7 @@
             }
         },
         {
-            "id": 113,
+            "id": 47,
             "name": "Wall_V2b",
             "physics": {
                 "enabled": true,
@@ -657,7 +657,7 @@
             }
         },
         {
-            "id": 114,
+            "id": 48,
             "name": "Wall_V3",
             "physics": {
                 "enabled": true,
@@ -697,7 +697,7 @@
             }
         },
         {
-            "id": 115,
+            "id": 49,
             "name": "Wall_V4a",
             "physics": {
                 "enabled": true,
@@ -737,7 +737,7 @@
             }
         },
         {
-            "id": 116,
+            "id": 50,
             "name": "Wall_V4b",
             "physics": {
                 "enabled": true,
@@ -777,7 +777,7 @@
             }
         },
         {
-            "id": 117,
+            "id": 51,
             "name": "Wall_V5",
             "physics": {
                 "enabled": true,
@@ -817,7 +817,7 @@
             }
         },
         {
-            "id": 118,
+            "id": 52,
             "name": "Wall_V5b",
             "physics": {
                 "enabled": true,
@@ -857,7 +857,7 @@
             }
         },
         {
-            "id": 119,
+            "id": 53,
             "name": "Wall_V6",
             "physics": {
                 "enabled": true,
@@ -897,7 +897,7 @@
             }
         },
         {
-            "id": 120,
+            "id": 54,
             "name": "",
             "physics": {
                 "enabled": false,
@@ -935,7 +935,7 @@
             }
         },
         {
-            "id": 121,
+            "id": 55,
             "name": "Cube_205",
             "physics": {
                 "enabled": true,
@@ -975,7 +975,7 @@
             }
         },
         {
-            "id": 122,
+            "id": 56,
             "name": "Cube_62",
             "physics": {
                 "enabled": true,
@@ -1015,7 +1015,7 @@
             }
         },
         {
-            "id": 123,
+            "id": 57,
             "name": "Cube_123",
             "physics": {
                 "enabled": true,
@@ -1055,7 +1055,7 @@
             }
         },
         {
-            "id": 124,
+            "id": 58,
             "name": "Cube_124",
             "physics": {
                 "enabled": true,
@@ -1095,7 +1095,7 @@
             }
         },
         {
-            "id": 125,
+            "id": 59,
             "name": "Cube_125",
             "physics": {
                 "enabled": true,
@@ -1147,7 +1147,7 @@
                 0.0
             ],
             "forceMagnitude": 400.0,
-            "id": 3,
+            "id": 4,
             "maxUses": -1,
             "name": "Trigger_1",
             "position": [
@@ -1161,7 +1161,7 @@
             "size": [
                 2.0,
                 2.0,
-                4.0
+                3.0
             ],
             "type": 1
         },
@@ -1169,7 +1169,7 @@
             "behaviourTag": "sphere_spawner",
             "debugVisualize": true,
             "enabled": true,
-            "id": 4,
+            "id": 5,
             "maxUses": 1,
             "name": "Sphere_Spawner",
             "position": [
@@ -1191,7 +1191,7 @@
             "behaviourTag": "",
             "debugVisualize": true,
             "enabled": true,
-            "id": 5,
+            "id": 6,
             "maxUses": -1,
             "name": "Teleporter",
             "position": [
@@ -1203,7 +1203,7 @@
                 "player"
             ],
             "size": [
-                5.0,
+                3.0,
                 0.5,
                 4.0
             ],
