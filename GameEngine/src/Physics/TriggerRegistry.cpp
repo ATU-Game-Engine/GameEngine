@@ -120,6 +120,20 @@ void TriggerRegistry::update(float deltaTime) {
             trigger->update(dynamicsWorld, deltaTime);
         }
     }
+
+    triggers.erase(
+        std::remove_if(triggers.begin(), triggers.end(),
+            [&](const std::unique_ptr<Trigger>& t)
+            {
+                if (t->isPendingDestroy())
+                {
+                    removeFromPhysicsWorld(t.get());
+                    return true; // remove from vector
+                }
+                return false;
+            }),
+        triggers.end()
+    );
 }
 
 // === Queries ===

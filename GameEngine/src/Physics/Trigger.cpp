@@ -1,5 +1,6 @@
-#include "../include/Physics/Trigger.h"
+ï»¿#include "../include/Physics/Trigger.h"
 #include "../include/Scene/GameObject.h"
+#include "../include/Physics/TriggerRegistry.h"
 #include <iostream>
 #include <algorithm>
 
@@ -58,7 +59,7 @@ void Trigger::requireTag(const std::string& tag)
 // or if no required tags have been set (empty = affect everything).
 bool Trigger::passesTagFilter(GameObject* obj) const
 {
-    if (requiredTags.empty()) return true;   // no filter — affect everything
+    if (requiredTags.empty()) return true;   // no filter â€” affect everything
     for (const auto& tag : requiredTags)
         if (!obj->hasTag(tag)) return false; // missing at least one required tag
     return true;
@@ -107,13 +108,24 @@ void Trigger::update(btDiscreteDynamicsWorld* world, float deltaTime) {
 			// Add to our list of what's inside
             objectsInside.push_back(obj);
 
+            // Check usage limit BEFORE triggering
+            if (!canActivate())
+                continue;
+
+            incrementUse();
+
             if (onEnterCallback) {
-                // Use custom callback
                 onEnterCallback(obj);
             }
             else {
-                // Use default behavior
                 executeDefaultBehavior(obj);
+            }
+
+            // Destroy trigger if max uses reached
+            if (shouldDestroy())
+            {
+                setEnabled(false);
+                markForDestroy();
             }
         }
         else {
@@ -198,7 +210,7 @@ void Trigger::setSize(const glm::vec3& newSize) {
 }
 void Trigger::setForce(const glm::vec3& direction, float magnitude)
 {
-    // Safely normalize — avoid NaN if zero vector passed
+    // Safely normalize â€” avoid NaN if zero vector passed
     float len = glm::length(direction);
     forceDirection = (len > 0.0001f) ? direction / len : glm::vec3(0, 1, 0);
     forceMagnitude = magnitude;

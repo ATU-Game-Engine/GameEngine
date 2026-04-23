@@ -2,20 +2,20 @@
     "directionalLight": {
         "colour": [
             1.0,
-            0.6000000238418579,
-            0.30000001192092896
+            1.0,
+            0.8999999761581421
         ],
         "direction": [
-            -0.5905595421791077,
-            -0.17140068113803864,
-            0.7885817885398865
+            0.0,
+            -1.0,
+            0.0
         ],
-        "intensity": 0.800000011920929
+        "intensity": 1.0
     },
     "forceGenerators": [],
     "objects": [
         {
-            "id": 3,
+            "id": 136,
             "name": "Ground",
             "physics": {
                 "enabled": true,
@@ -31,7 +31,7 @@
                 "modelPath": "",
                 "normal": "",
                 "specular": "",
-                "texture": ""
+                "texture": "textures\\wood1.jpg"
             },
             "shape": 0,
             "tags": [],
@@ -55,7 +55,7 @@
             }
         },
         {
-            "id": 4,
+            "id": 137,
             "name": "Player",
             "physics": {
                 "enabled": true,
@@ -79,15 +79,15 @@
             ],
             "transform": {
                 "position": [
-                    -18.0,
-                    1.0,
-                    18.0
+                    12.000375747680664,
+                    0.8999999165534973,
+                    5.868403434753418
                 ],
                 "rotation": [
-                    0.0,
-                    0.0,
-                    0.0,
-                    1.0
+                    -2.271693659849916e-07,
+                    0.8855710625648499,
+                    2.279750788147794e-07,
+                    0.4645040035247803
                 ],
                 "scale": [
                     1.0,
@@ -97,7 +97,7 @@
             }
         },
         {
-            "id": 5,
+            "id": 138,
             "name": "Wall_Outer_North",
             "physics": {
                 "enabled": true,
@@ -137,7 +137,7 @@
             }
         },
         {
-            "id": 6,
+            "id": 139,
             "name": "Wall_Outer_South",
             "physics": {
                 "enabled": true,
@@ -177,7 +177,7 @@
             }
         },
         {
-            "id": 7,
+            "id": 140,
             "name": "Wall_Outer_West",
             "physics": {
                 "enabled": true,
@@ -217,7 +217,7 @@
             }
         },
         {
-            "id": 8,
+            "id": 141,
             "name": "Wall_Outer_East",
             "physics": {
                 "enabled": true,
@@ -257,7 +257,7 @@
             }
         },
         {
-            "id": 9,
+            "id": 142,
             "name": "Wall_H1a",
             "physics": {
                 "enabled": true,
@@ -297,7 +297,7 @@
             }
         },
         {
-            "id": 10,
+            "id": 143,
             "name": "Wall_H1b",
             "physics": {
                 "enabled": true,
@@ -337,7 +337,7 @@
             }
         },
         {
-            "id": 11,
+            "id": 144,
             "name": "Wall_H2",
             "physics": {
                 "enabled": true,
@@ -377,7 +377,7 @@
             }
         },
         {
-            "id": 12,
+            "id": 145,
             "name": "Wall_H3a",
             "physics": {
                 "enabled": true,
@@ -417,7 +417,7 @@
             }
         },
         {
-            "id": 13,
+            "id": 146,
             "name": "Wall_H3b",
             "physics": {
                 "enabled": true,
@@ -457,7 +457,7 @@
             }
         },
         {
-            "id": 14,
+            "id": 147,
             "name": "Wall_H4",
             "physics": {
                 "enabled": true,
@@ -497,7 +497,7 @@
             }
         },
         {
-            "id": 15,
+            "id": 148,
             "name": "Wall_H6",
             "physics": {
                 "enabled": true,
@@ -537,7 +537,7 @@
             }
         },
         {
-            "id": 16,
+            "id": 149,
             "name": "Wall_V1a",
             "physics": {
                 "enabled": true,
@@ -577,7 +577,7 @@
             }
         },
         {
-            "id": 17,
+            "id": 150,
             "name": "Wall_V1b",
             "physics": {
                 "enabled": true,
@@ -617,7 +617,7 @@
             }
         },
         {
-            "id": 18,
+            "id": 151,
             "name": "Wall_V2b",
             "physics": {
                 "enabled": true,
@@ -657,7 +657,7 @@
             }
         },
         {
-            "id": 19,
+            "id": 152,
             "name": "Wall_V3",
             "physics": {
                 "enabled": true,
@@ -697,7 +697,7 @@
             }
         },
         {
-            "id": 20,
+            "id": 153,
             "name": "Wall_V4a",
             "physics": {
                 "enabled": true,
@@ -737,7 +737,7 @@
             }
         },
         {
-            "id": 21,
+            "id": 154,
             "name": "Wall_V4b",
             "physics": {
                 "enabled": true,
@@ -777,7 +777,7 @@
             }
         },
         {
-            "id": 22,
+            "id": 155,
             "name": "Wall_V5",
             "physics": {
                 "enabled": true,
@@ -817,7 +817,7 @@
             }
         },
         {
-            "id": 23,
+            "id": 156,
             "name": "Wall_V5b",
             "physics": {
                 "enabled": true,
@@ -857,7 +857,7 @@
             }
         },
         {
-            "id": 24,
+            "id": 157,
             "name": "Wall_V6",
             "physics": {
                 "enabled": true,
@@ -897,12 +897,50 @@
             }
         },
         {
-            "id": 25,
-            "name": "Goal",
+            "id": 158,
+            "name": "",
+            "physics": {
+                "enabled": false,
+                "physicsScale": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "render": {
+                "modelPath": "models\\spyro.obj",
+                "normal": "",
+                "specular": "",
+                "texture": ""
+            },
+            "shape": 0,
+            "tags": [],
+            "transform": {
+                "position": [
+                    17.78166961669922,
+                    0.963763952255249,
+                    -18.44797134399414
+                ],
+                "rotation": [
+                    0.055478908121585846,
+                    -0.7049270272254944,
+                    0.055478908121585846,
+                    0.7049270272254944
+                ],
+                "scale": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
+        },
+        {
+            "id": 159,
+            "name": "Cube_205",
             "physics": {
                 "enabled": true,
-                "mass": 0.0,
-                "material": "Default",
+                "mass": 1.0,
+                "material": "Concrete",
                 "physicsScale": [
                     1.0,
                     1.0,
@@ -913,30 +951,81 @@
                 "modelPath": "",
                 "normal": "",
                 "specular": "",
-                "texture": "textures\\wood1.jpg"
+                "texture": "textures\\PavingStones138_1K-JPG_Color.jpg"
             },
             "shape": 0,
             "tags": [],
             "transform": {
                 "position": [
-                    18.0,
-                    1.0,
-                    -18.0
+                    -382.2080993652344,
+                    -68058.59375,
+                    17.95427894592285
                 ],
                 "rotation": [
-                    0.0,
-                    0.0,
-                    0.0,
+                    2.1695457235182403e-06,
+                    -6.196082709408746e-12,
+                    -2.134606347681256e-06,
                     1.0
                 ],
                 "scale": [
-                    2.0,
-                    2.0,
-                    2.0
+                    1.0,
+                    1.0,
+                    1.0
                 ]
             }
         }
     ],
     "pointLights": [],
-    "triggers": []
+    "triggers": [
+        {
+            "behaviourTag": "",
+            "debugVisualize": true,
+            "enabled": true,
+            "forceDirection": [
+                -1.0,
+                0.0,
+                0.0
+            ],
+            "forceMagnitude": 400.0,
+            "id": 8,
+            "maxUses": -1,
+            "name": "Trigger_1",
+            "position": [
+                5.044956207275391,
+                0.7326922416687012,
+                17.837800979614258
+            ],
+            "requiredTags": [
+                "player"
+            ],
+            "size": [
+                2.0,
+                2.0,
+                4.0
+            ],
+            "type": 1
+        },
+        {
+            "behaviourTag": "sphere_spawner",
+            "debugVisualize": true,
+            "enabled": true,
+            "id": 9,
+            "maxUses": 1,
+            "name": "Sphere_Spawner",
+            "position": [
+                11.837458610534668,
+                -0.743610143661499,
+                12.989095687866211
+            ],
+            "requiredTags": [
+                "player"
+            ],
+            "size": [
+                2.0,
+                2.0,
+                2.0
+            ],
+            "type": 2
+        }
+    ]
 }

@@ -73,6 +73,10 @@ private:
     // Returns true if obj has ALL required tags (or if no filter is set).
     bool passesTagFilter(GameObject* obj) const;
 
+    int maxUses = -1;   // -1 = infinite uses
+    int useCount = 0;
+
+    bool pendingDestroy = false;
 
 public:
     /**
@@ -174,6 +178,24 @@ public:
     void clearRequiredTags() { requiredTags.clear(); }
     bool hasTagFilter() const { return !requiredTags.empty(); }
     const std::unordered_set<std::string>& getRequiredTags() const { return requiredTags; }
+
+    void setMaxUses(int uses) { maxUses = uses; }
+    int getMaxUses() const { return maxUses; }
+
+    int getUseCount() const { return useCount; }
+
+    bool canActivate() const {
+        return maxUses < 0 || useCount < maxUses;
+    }
+
+    void incrementUse() { useCount++; }
+
+    bool shouldDestroy() const {
+        return maxUses >= 0 && useCount >= maxUses;
+    }
+
+    void markForDestroy() { pendingDestroy = true; }
+    bool isPendingDestroy() const { return pendingDestroy; }
 };
 
 #endif // TRIGGER_H

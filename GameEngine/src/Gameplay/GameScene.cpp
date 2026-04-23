@@ -80,16 +80,16 @@ void SetupScripts(Scene& scene, Camera& camera, Physics& physics)
                 if (!obj->hasPhysics()) return;
 
                 // Spawn 5 spheres in a spread above the trigger
-                for (int i = 0; i < 5; i++)
+                for (int i = 0; i < 1; i++)
                 {
                     float offsetX = (i - 2) * 1.5f; // spread them out: -3, -1.5, 0, 1.5, 3
-                    glm::vec3 spawnPos = t->getPosition() + glm::vec3(offsetX, 6.0f, 0.0f);
+                    glm::vec3 spawnPos = t->getPosition() + glm::vec3(0.0f, t->getSize().y + 3.0f, 0.0f);
 
                     GameObject* sphere = scene.spawnObject(
                         ShapeType::SPHERE,
                         spawnPos,
-                        glm::vec3(0.5f),  // radius
-                        1.0f,             // mass
+                        glm::vec3(2.0f),  // radius
+                        100.0f,             // mass
                         "Default"
                     );
                     sphere->setName("SpawnedSphere_" + std::to_string(i));

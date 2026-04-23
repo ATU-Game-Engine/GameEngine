@@ -856,6 +856,8 @@ bool Scene::saveToFile(const std::string& path) const
 		// will be empty string for TELEPORT and SPEED_ZONE triggers which have no behaviour tag
         t["behaviourTag"] = trigger->getBehaviourTag();
 
+        t["maxUses"] = trigger->getMaxUses();
+
         sceneJson["triggers"].push_back(t);
     }
 
@@ -1078,6 +1080,9 @@ bool Scene::loadFromFile(const std::string& path)
 
             if (!trigger) continue;
 
+            if (t.contains("maxUses"))
+                trigger->setMaxUses(t["maxUses"]);
+
             if (t.contains("enabled"))
                 trigger->setEnabled(t["enabled"]);
 
@@ -1117,6 +1122,8 @@ bool Scene::loadFromFile(const std::string& path)
         }
 
         std::cout << "Triggers loaded successfully" << std::endl;
+
+        applyTriggerScriptsToExistingTriggers();
     }
 
     if (sceneJson.contains("pointLights"))

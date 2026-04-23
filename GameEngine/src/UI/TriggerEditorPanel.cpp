@@ -40,6 +40,9 @@ void DrawTriggerEditorPanel(DebugUIContext& context)
     static float    forceDir[3] = { 0.0f, 1.0f, 0.0f };
     static float    forceMag = 10.0f;
 
+    static int maxUses = -1;
+    static int selectedUseIndex = 0;
+
 	// assign behaviour to event triggers
     static char behaviourTagBuf[64] = "";
 	// Tag management for new trigger creation
@@ -84,6 +87,22 @@ void DrawTriggerEditorPanel(DebugUIContext& context)
             ImGui::DragFloat3("Size (Half Extents)", newSize, 0.1f, 0.1f, 100.0f);
 
             ImGui::Separator();
+
+            ImGui::SeparatorText("Usage");
+
+            const char* useOptions[] = { "Infinite", "1", "2", "3", "5", "10" };
+            ImGui::Combo("Uses", &selectedUseIndex, useOptions, IM_ARRAYSIZE(useOptions));
+
+            switch (selectedUseIndex)
+            {
+            case 0: maxUses = -1; break;
+            case 1: maxUses = 1; break;
+            case 2: maxUses = 2; break;
+            case 3: maxUses = 3; break;
+            case 4: maxUses = 5; break;
+            case 5: maxUses = 10; break;
+            }
+
             ImGui::SeparatorText("Type-Specific Settings");
 
             TriggerType selectedType = IndexToTriggerType(selectedTypeIndex);
@@ -156,6 +175,8 @@ void DrawTriggerEditorPanel(DebugUIContext& context)
 
                     if (newTrigger)
                     {
+                        newTrigger->setMaxUses(maxUses);
+
                         if (selectedType == TriggerType::TELEPORT)
                             context.triggerCommands.setTeleportDestination(newTrigger,
                                 glm::vec3(teleportDest[0], teleportDest[1], teleportDest[2]));
@@ -253,6 +274,20 @@ void DrawTriggerEditorPanel(DebugUIContext& context)
                 glm::vec3 size = trigger->getSize();
                 if (ImGui::DragFloat3("Size (Half Extents)", &size.x, 0.1f, 0.1f, 100.0f))
                     trigger->setSize(size);
+
+                ImGui::SeparatorText("Usage");
+
+                int maxUses = trigger->getMaxUses();
+                int useCount = trigger->getUseCount();
+
+                if (maxUses < 0)
+                {
+                    ImGui::Text("Uses: %d / Infinite", useCount);
+                }
+                else
+                {
+                    ImGui::Text("Uses: %d / %d", useCount, maxUses);
+                }
 
                 ImGui::Separator();
 
