@@ -382,12 +382,16 @@ void DrawInspectorPanel(DebugUIContext& context)
                             static bool       hingeMotorOn = false;
                             static float      hingeMotorVel = 1.0f;
                             static float      hingeMotorImp = 10.0f;
-                            static Constraint* lastHinge = nullptr; // track which constraint is open
 
-                            if (c != lastHinge && hinge)
+							//track by hinge ID to avoid overwriting values when switching between constraints
+                            static uint64_t lastHingeID = 0;
+
+                            uint64_t currentID = (c->getBodyA() ? c->getBodyA()->getID() : 0);
+                            const HingeParams& p = c->getHingeParams();
+                            if(currentID != lastHingeID && hinge)
                             {
-                                lastHinge = c;
-                                hingeUseLimits = hinge->hasLimit();
+                                lastHingeID = currentID;
+                                hingeUseLimits = p.useLimits;
                                 if (hingeUseLimits)
                                 {
                                     hingeLower = glm::degrees(hinge->getLowerLimit());
@@ -395,9 +399,9 @@ void DrawInspectorPanel(DebugUIContext& context)
                                 }
                                 // getEnableMotor is not publicly exposed in Bullet
                                 // default to false and let the user toggle it on
-                                hingeMotorOn = false;
-                                hingeMotorVel = 1.0f;
-                                hingeMotorImp = 10.0f;
+                                hingeMotorOn = p.useMotor;
+                                hingeMotorVel = p.motorTargetVelocity;
+                                hingeMotorImp = p.motorMaxImpulse;
                             }
 
                             if (ImGui::Checkbox("Use Limits##HingeLimits", &hingeUseLimits))
@@ -448,17 +452,19 @@ void DrawInspectorPanel(DebugUIContext& context)
                             static bool        sliderMotorOn = false;
                             static float       sliderMotorVel = 1.0f;
                             static float       sliderMotorForce = 10.0f;
-                            static Constraint* lastSlider = nullptr; // track which constraint is open
-
-                            if (c != lastSlider && slider)
+							// track by slider ID to avoid overwriting values when switching between constraints
+                            static uint64_t lastSliderID = 0;
+                            uint64_t currentID = (c->getBodyA() ? c->getBodyA()->getID() : 0);
+                            const SliderParams& p = c->getSliderParams();
+                            if (currentID != lastSliderID && slider)
                             {
-                                lastSlider = c;
-                                sliderLower = slider->getLowerLinLimit();
-                                sliderUpper = slider->getUpperLinLimit();
-                                sliderUseLimits = sliderLower <= sliderUpper;
-                                sliderMotorOn = slider->getPoweredLinMotor();
-                                sliderMotorVel = slider->getTargetLinMotorVelocity();
-                                sliderMotorForce = slider->getMaxLinMotorForce();
+                                lastSliderID = currentID;
+                                sliderUseLimits = p.useLimits;
+                                sliderLower = p.lowerLimit;
+                                sliderUpper = p.upperLimit;
+                                sliderMotorOn = p.useMotor;
+                                sliderMotorVel = p.motorTargetVelocity;
+                                sliderMotorForce = p.motorMaxForce;
                             }
 
                             if (ImGui::Checkbox("Use Limits##SliderLimits", &sliderUseLimits))

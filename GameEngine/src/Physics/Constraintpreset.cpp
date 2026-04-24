@@ -105,6 +105,11 @@ std::unique_ptr<Constraint> ConstraintPreset::createHinge(
     );
     constraint->setFrames(hinge->getAFrame(), hinge->getBFrame(), true);
 
+    if (params.useLimits)
+        constraint->setAngleLimits(params.lowerLimit, params.upperLimit);
+    if (params.useMotor)
+        constraint->enableMotor(params.motorTargetVelocity, params.motorMaxImpulse);
+
     std::cout << "Created HINGE constraint";
     if (params.useLimits) {
         std::cout << " with limits [" << params.lowerLimit << ", " << params.upperLimit << "]";
@@ -195,6 +200,13 @@ std::unique_ptr<Constraint> ConstraintPreset::createSlider(
         slider, ConstraintType::SLIDER, objA, objB
     );
     constraint->setFrames(frameInA, frameInB, true);
+
+    if (params.useLimits)
+        constraint->setLinearLimits(params.lowerLimit, params.upperLimit);
+    if (params.useMotor)
+        constraint->enableLinearMotor(params.motorTargetVelocity, params.motorMaxForce);
+
+
     std::cout << "Created SLIDER constraint";
     if (params.useLimits) {
         std::cout << " with limits [" << params.lowerLimit << ", " << params.upperLimit << "]";
@@ -251,6 +263,14 @@ std::unique_ptr<Constraint> ConstraintPreset::createSpring(
         spring, ConstraintType::SPRING, objA, objB
     );
     constraint->setFrames(frameInA, frameInB, true);
+
+	// Cache spring parameters in our Constraint class for easy access and potential rebuilding
+    for (int i = 0; i < 6; ++i) {
+        if (params.enableSpring[i]) {
+            constraint->setSpringStiffness(i, params.stiffness[i]);
+            constraint->setSpringDamping(i, params.damping[i]);
+        }
+    }
 
     int activeSpringCount = 0;
     for (int i = 0; i < 6; ++i) {

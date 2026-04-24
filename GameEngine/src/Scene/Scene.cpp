@@ -1369,6 +1369,10 @@ bool Scene::loadFromFile(const std::string& path)
                     hinge->setMaxMotorImpulse(p.motorMaxImpulse);
                 }
                 c = std::make_unique<Constraint>(hinge, ConstraintType::HINGE, objA, objB);
+                if (p.useLimits)
+                    c->setAngleLimits(p.lowerLimit, p.upperLimit);
+                if (p.useMotor)
+                    c->enableMotor(p.motorTargetVelocity, p.motorMaxImpulse);
                 break;
             }
             case ConstraintType::SLIDER: {
@@ -1394,6 +1398,10 @@ bool Scene::loadFromFile(const std::string& path)
                     slider->setMaxLinMotorForce(p.motorMaxForce);
                 }
                 c = std::make_unique<Constraint>(slider, ConstraintType::SLIDER, objA, objB);
+                if (p.useLimits)
+                    c->setLinearLimits(p.lowerLimit, p.upperLimit);
+                if (p.useMotor)
+                    c->enableLinearMotor(p.motorTargetVelocity, p.motorMaxForce);
                 break;
             }
             case ConstraintType::SPRING: {
@@ -1417,6 +1425,12 @@ bool Scene::loadFromFile(const std::string& path)
                 }
                 spring->setEquilibriumPoint();
                 c = std::make_unique<Constraint>(spring, ConstraintType::SPRING, objA, objB);
+                for (int i = 0; i < 6; ++i) {
+                    if (p.enableSpring[i]) {
+                        c->setSpringStiffness(i, p.stiffness[i]);
+                        c->setSpringDamping(i, p.damping[i]);
+                    }
+                }
                 break;
             }
             case ConstraintType::GENERIC_6DOF: {
