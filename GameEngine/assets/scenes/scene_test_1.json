@@ -1,0 +1,121 @@
+{
+    "constraints": [],
+    "directionalLight": {
+        "colour": [
+            1.0,
+            1.0,
+            1.0
+        ],
+        "direction": [
+            0.2591605484485626,
+            -0.8638684153556824,
+            0.4319342076778412
+        ],
+        "intensity": 0.800000011920929
+    },
+    "forceGenerators": [
+        {
+            "direction": [
+                1.0,
+                0.0,
+                0.0
+            ],
+            "enabled": true,
+            "name": "wind_corridor",
+            "position": [
+                0.0,
+                2.0,
+                0.0
+            ],
+            "radius": 8.0,
+            "strength": 100.0,
+            "type": 0
+        }
+    ],
+    "objects": [
+        {
+            "id": 1,
+            "name": "",
+            "physics": {
+                "enabled": true,
+                "mass": 0.0,
+                "material": "Default",
+                "physicsScale": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "render": {
+                "modelPath": "",
+                "normal": "",
+                "specular": "",
+                "texture": ""
+            },
+            "shape": 0,
+            "tags": [],
+            "transform": {
+                "position": [
+                    0.0,
+                    -0.25,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0
+                ],
+                "scale": [
+                    100.0,
+                    0.5,
+                    100.0
+                ]
+            }
+        },
+        {
+            "id": 2,
+            "name": "Player",
+            "physics": {
+                "enabled": true,
+                "mass": 1.0,
+                "material": "Default",
+                "physicsScale": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "render": {
+                "modelPath": "",
+                "normal": "",
+                "specular": "",
+                "texture": ""
+            },
+            "shape": 2,
+            "tags": [
+                "player"
+            ],
+            "transform": {
+                "position": [
+                    8.37964916229248,
+                    0.5423405766487122,
+                    1.2717534303665161
+                ],
+                "rotation": [
+                    -0.6061352491378784,
+                    0.1742892861366272,
+                    0.7456797361373901,
+                    0.21490709483623505
+                ],
+                "scale": [
+                    0.5,
+                    1.0,
+                    0.5
+                ]
+            }
+        }
+    ],
+    "pointLights": [],
+    "triggers": []
+}

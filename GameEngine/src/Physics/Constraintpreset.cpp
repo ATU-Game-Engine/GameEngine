@@ -1,14 +1,54 @@
+/**
+ * @file ConstraintPreset.cpp
+ * @brief Factory functions for creating common Bullet Physics constraint types
+ *        wrapped in the engine's Constraint class.
+ *
+ * Each preset handles the boilerplate of computing local-space frames,
+ * constructing the correct Bullet subtype, applying parameter structs,
+ * and caching those parameters on the returned Constraint so that
+ * Constraint::rebuild() can fully reconstruct the joint after a rigid
+ * body replacement (e.g. after Physics::resizeRigidBody).
+ *
+ * Supported presets:
+ *   - Fixed     — locks all 6 DOFs between two bodies
+ *   - Hinge     — single rotational axis, optional limits and motor
+ *   - Slider    — single linear axis, optional limits and motor
+ *   - Spring    — 6DOF spring with per-axis stiffness and damping
+ *   - Generic6DOF — full 6DOF with per-axis linear and angular limits
+ *
+ * All functions return nullptr and log to stderr if required GameObjects
+ * are missing or lack a physics body.
+ */
 #include "../include/Scene/GameObject.h"
 #include "../include/Physics/ConstraintPreset.h"
 #include <iostream>
 #include <glm/gtc/constants.hpp>
 
+ /**
+  * @brief Converts a Bullet btVector3 to a GLM vec3.
+  * @param v  Source Bullet vector.
+  * @return   Equivalent GLM vector.
+  */
 inline glm::vec3 toGlm(const btVector3& v)
 {
     return glm::vec3(v.x(), v.y(), v.z());
 }
 //  FIXED Constraints 
-
+/**
+ * @brief Creates a fixed constraint that locks all 6 DOFs between two bodies.
+ *
+ * The constraint pivot is placed at body B's current world position expressed
+ * in body A's local space, so the two objects are locked in their current
+ * relative pose at the moment this is called. Neither translation nor rotation
+ * is permitted after the constraint is active.
+ *
+ * Implemented as a btGeneric6DofConstraint with all linear and angular limits
+ * set to zero, which is more stable than btFixedConstraint in most Bullet versions.
+ *
+ * @param objA  First body. Must have a physics component.
+ * @param objB  Second body. Must have a physics component.
+ * @return      Owning pointer to the new Constraint, or nullptr on failure.
+ */
 std::unique_ptr<Constraint> ConstraintPreset::createFixed(
     GameObject* objA, GameObject* objB)
 {
@@ -32,6 +72,11 @@ std::unique_ptr<Constraint> ConstraintPreset::createFixed(
     btTransform frameInB;
     frameInB.setIdentity();
 
+    if (rbA == rbB) {
+        std::cerr << "Error: Cannot create fixed constraint — both bodies are the same ("
+            << objA->getName() << ")" << std::endl;
+        return nullptr;
+    }
     // Create bullet fixed constraint (generic 6DOF with all DOFs locked)
     btGeneric6DofConstraint* fixedConstraint = new btGeneric6DofConstraint(
         *rbA, *rbB, frameInA, frameInB, true
@@ -54,7 +99,26 @@ std::unique_ptr<Constraint> ConstraintPreset::createFixed(
 }
 
 // HINGE Constraints 
-
+/**
+ * @brief Creates a hinge constraint from a fully specified HingeParams struct.
+ *
+ * The hinge allows rotation around a single axis. If objB is null the hinge
+ * is anchored to the physics world (body A swings around a fixed world point).
+ *
+ * When two bodies are provided, the pivot for body B is derived by converting
+ * pivotA from A's local space to world space, then into B's local space, so
+ * the hinge is positioned consistently regardless of the objects' current
+ * world transforms.
+ *
+ * Limits and motor settings from params are applied both to the Bullet
+ * constraint and cached on the returned Constraint for rebuild() survival.
+ *
+ * @param objA    Primary body. Must have a physics component.
+ * @param objB    Secondary body, or nullptr to anchor to the world.
+ * @param params  Struct containing pivot points, axis vectors, limit angles,
+ *                and motor configuration.
+ * @return        Owning pointer to the new Constraint, or nullptr on failure.
+ */
 std::unique_ptr<Constraint> ConstraintPreset::createHinge(
     GameObject* objA, GameObject* objB, const HingeParams& params)
 {
@@ -71,6 +135,11 @@ std::unique_ptr<Constraint> ConstraintPreset::createHinge(
 
 	// if we have two bodies, create hinge between them, otherwise hinge to world
     if (rbB) {
+        if (rbA == rbB) {
+            std::cerr << "Error: Cannot create hinge — both bodies are the same ("
+                << objA->getName() << ")" << std::endl;
+            return nullptr;
+        }
         // Convert pivotA from A's local space to world space, then into B's local space
         btVector3 worldPivot = rbA->getWorldTransform() * toBullet(params.pivotA);
         btVector3 localPivotB = rbB->getWorldTransform().inverse() * worldPivot;
@@ -118,7 +187,20 @@ std::unique_ptr<Constraint> ConstraintPreset::createHinge(
 
     return constraint;
 }
-
+/**
+ * @brief Creates a hinge constraint from a world-space pivot point and axis.
+ *
+ * Convenience overload that converts the world-space inputs into body-local
+ * HingeParams and delegates to the full createHinge overload. Useful when
+ * the caller knows the desired hinge position and axis in world space but
+ * does not want to compute local-space transforms manually.
+ *
+ * @param objA        Primary body. Must have a physics component.
+ * @param objB        Secondary body, or nullptr to anchor to the world.
+ * @param worldPivot  Hinge pivot position in world space.
+ * @param worldAxis   Hinge rotation axis in world space (need not be normalised).
+ * @return            Owning pointer to the new Constraint, or nullptr on failure.
+ */
 std::unique_ptr<Constraint> ConstraintPreset::createHinge(
     GameObject* objA, GameObject* objB,
     const glm::vec3& worldPivot, const glm::vec3& worldAxis)
@@ -154,7 +236,22 @@ std::unique_ptr<Constraint> ConstraintPreset::createHinge(
 }
 
 //  SLIDER Constraints 
-
+/**
+ * @brief Creates a slider constraint that allows linear motion along one axis.
+ *
+ * Both bodies must have physics. The slider axis and attachment points are
+ * defined by the frame transforms in SliderParams (frameAPos/Rot for body A,
+ * frameBPos/Rot for body B). The local-space frames determine both the axis
+ * direction and the pivot locations on each body.
+ *
+ * Optional limits cap how far body B can slide along the axis relative to A.
+ * An optional motor drives B at a target velocity up to a maximum force.
+ *
+ * @param objA    Primary body. Must have a physics component.
+ * @param objB    Secondary body. Must have a physics component.
+ * @param params  Frame transforms, limit values, and motor configuration.
+ * @return        Owning pointer to the new Constraint, or nullptr on failure.
+ */
 std::unique_ptr<Constraint> ConstraintPreset::createSlider(
     GameObject* objA, GameObject* objB, const SliderParams& params)
 {
@@ -171,6 +268,11 @@ std::unique_ptr<Constraint> ConstraintPreset::createSlider(
     btRigidBody* rbA = objA->getRigidBody();
     btRigidBody* rbB = objB->getRigidBody();
 
+    if (rbA == rbB) {
+        std::cerr << "Error: Cannot create slider — both bodies are the same ("
+            << objA->getName() << ")" << std::endl;
+        return nullptr;
+    }
     // Create transforms for the slider frames
 	// frameInA is the position and orientation of the slider in A's local space, if its attached to A at (0,0) at a 25% rotation around z ect
     btTransform frameInA, frameInB;
@@ -217,7 +319,22 @@ std::unique_ptr<Constraint> ConstraintPreset::createSlider(
 }
 
 //  SPRING Constraints 
-
+/**
+ * @brief Creates a 6DOF spring constraint with per-axis stiffness and damping.
+ *
+ * Built on btGeneric6DofSpringConstraint. Each of the 6 axes (0-2 linear,
+ * 3-5 angular) can independently have a spring enabled. The equilibrium
+ * point is set to the bodies' current relative pose at creation time.
+ *
+ * Stiffness controls how strongly the spring resists displacement from
+ * equilibrium (higher = stiffer). Damping controls how quickly oscillations
+ * decay (1.0 = critically damped, no overshoot; <1.0 = bouncy).
+ *
+ * @param objA    Primary body. Must have a physics component.
+ * @param objB    Secondary body. Must have a physics component.
+ * @param params  Per-axis enable flags, stiffness, damping, and pivot frames.
+ * @return        Owning pointer to the new Constraint, or nullptr on failure.
+ */
 std::unique_ptr<Constraint> ConstraintPreset::createSpring(
     GameObject* objA, GameObject* objB, const SpringParams& params)
 {
@@ -234,6 +351,11 @@ std::unique_ptr<Constraint> ConstraintPreset::createSpring(
     btRigidBody* rbA = objA->getRigidBody();
     btRigidBody* rbB = objB->getRigidBody();
 
+    if (rbA == rbB) {
+        std::cerr << "Error: Cannot create spring — both bodies are the same ("
+            << objA->getName() << ")" << std::endl;
+        return nullptr;
+    }
     // Create transforms
     btTransform frameInA, frameInB;
     frameInA.setOrigin(toBullet(params.pivotA));
@@ -281,7 +403,22 @@ std::unique_ptr<Constraint> ConstraintPreset::createSpring(
     return constraint;
 }
 
-// Simplified spring creation with default pivots , sends to main spring creation function 
+/**
+ * @brief Simplified spring creation that enables only the vertical (Y) axis.
+ *
+ * Convenience overload for the common case of a suspension or bounce spring
+ * where only vertical displacement needs to be spring-constrained. Both pivot
+ * points default to the object centres (0, 0, 0 in local space).
+ *
+ * Delegates to the full createSpring overload with a SpringParams struct
+ * configured for axis 1 (linear Y) only.
+ *
+ * @param objA       Primary body. Must have a physics component.
+ * @param objB       Secondary body. Must have a physics component.
+ * @param stiffness  Spring stiffness on the Y axis (N/m).
+ * @param damping    Damping ratio on the Y axis (1.0 = critically damped).
+ * @return           Owning pointer to the new Constraint, or nullptr on failure.
+ */
 std::unique_ptr<Constraint> ConstraintPreset::createSpring(
     GameObject* objA, GameObject* objB, float stiffness, float damping)
 {
@@ -299,8 +436,23 @@ std::unique_ptr<Constraint> ConstraintPreset::createSpring(
     return createSpring(objA, objB, params);
 }
 
-// ========== GENERIC 6DOF Constraints ==========
-
+//  GENERIC 6DOF Constraints
+/**
+ * @brief Simplified spring creation that enables only the vertical (Y) axis.
+ *
+ * Convenience overload for the common case of a suspension or bounce spring
+ * where only vertical displacement needs to be spring-constrained. Both pivot
+ * points default to the object centres (0, 0, 0 in local space).
+ *
+ * Delegates to the full createSpring overload with a SpringParams struct
+ * configured for axis 1 (linear Y) only.
+ *
+ * @param objA       Primary body. Must have a physics component.
+ * @param objB       Secondary body. Must have a physics component.
+ * @param stiffness  Spring stiffness on the Y axis (N/m).
+ * @param damping    Damping ratio on the Y axis (1.0 = critically damped).
+ * @return           Owning pointer to the new Constraint, or nullptr on failure.
+ */
 std::unique_ptr<Constraint> ConstraintPreset::createGeneric6Dof(
     GameObject* objA, GameObject* objB, const Generic6DofParams& params)
 {
@@ -317,6 +469,11 @@ std::unique_ptr<Constraint> ConstraintPreset::createGeneric6Dof(
     btRigidBody* rbA = objA->getRigidBody();
     btRigidBody* rbB = objB->getRigidBody();
 
+    if (rbA == rbB) {
+        std::cerr << "Error: Cannot create 6DOF — both bodies are the same ("
+            << objA->getName() << ")" << std::endl;
+        return nullptr;
+    }
     // Create transforms
     btTransform frameInA, frameInB;
     frameInA.setOrigin(toBullet(params.pivotA));

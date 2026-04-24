@@ -1,3 +1,20 @@
+/**
+ * @file PhysicsMaterial.h
+ * @brief Declares PhysicsMaterial (a friction/restitution value type) and
+ *        MaterialRegistry (the singleton that stores and provides them).
+ *
+ * PhysicsMaterial is a lightweight value type pairing friction and restitution
+ * with a name string. Eight built-in presets cover the most common surface
+ * types and are registered automatically on first use.
+ *
+ * MaterialRegistry is a Meyer's singleton backed by an unordered_map. It is
+ * populated on construction and can be extended at runtime via registerMaterial().
+ * Physics::createRigidBody() calls getMaterial() to apply properties to each
+ * newly created rigid body.
+ *
+ * @note Material changes after a rigid body has been created do not propagate
+ *       automatically — only new rigid bodies pick up the updated values.
+ */
 #ifndef PHYSICS_MATERIAL_H
 #define PHYSICS_MATERIAL_H
 
@@ -32,11 +49,24 @@ public:
     std::string name;    // Material id
 
 	// Materials properties constructor
+     /**
+     * @brief Constructs a named material with explicit friction and restitution.
+     *
+     * @param name         Unique identifier for registry lookup.
+     * @param friction     Surface friction coefficient (see class description).
+     * @param restitution  Bounciness coefficient (see class description).
+     */
     PhysicsMaterial(const std::string& name,
         float friction,
         float restitution);
 
     // Default constructor (creates "Default" material)
+     /**
+     * @brief Default constructor — creates the "Default" material preset.
+     *
+     * Equivalent to PhysicsMaterial("Default", 0.5f, 0.3f). Provided so the
+     * type can be used as an unordered_map value without an explicit initialiser.
+     */
     PhysicsMaterial();
 
     // common material types

@@ -1,4 +1,28 @@
-﻿#include "../include/Physics/Trigger.h"
+﻿/**
+ * @file Trigger.cpp
+ * @brief Implementation of the Trigger class — a non-physical volume that
+ *        detects when dynamic rigid bodies enter, stay inside, or leave it.
+ *
+ * Triggers are implemented using Bullet's btPairCachingGhostObject with the
+ * CF_NO_CONTACT_RESPONSE flag set, meaning they detect overlaps but exert no
+ * physical forces. TriggerRegistry::update() calls Trigger::update() each
+ * physics tick to fire the appropriate callbacks.
+ *
+ * Each trigger supports three event callbacks:
+ *   onEnterCallback — fired once when a qualifying object first enters.
+ *   onStayCallback  — fired every tick while a qualifying object remains inside.
+ *   onExitCallback  — fired once when a qualifying object leaves.
+ *
+ * If no enter callback is set, executeDefaultBehavior() is called instead,
+ * which handles the built-in TELEPORT and SPEED_ZONE types automatically.
+ *
+ * Triggers can optionally:
+ *   - Filter by tags (requireTag) so only tagged objects activate them.
+ *   - Limit the number of activations (maxUses) and self-destroy afterwards.
+ *   - Carry a behaviourTag string used by Scene's triggerScriptRegistry to
+ *     wire custom script callbacks at load time.
+ */
+#include "../include/Physics/Trigger.h"
 #include "../include/Scene/GameObject.h"
 #include "../include/Physics/TriggerRegistry.h"
 #include <iostream>
@@ -6,6 +30,24 @@
 
 uint64_t Trigger::nextID = 1;
 
+
+/**
+ * @brief Constructs a trigger volume at a given world position and size.
+ *
+ * Creates a btBoxShape sized to `size` and a btPairCachingGhostObject at
+ * `pos` with CF_NO_CONTACT_RESPONSE so the volume detects overlaps without
+ * generating contact forces. The ghost object must be added to the Bullet
+ * world by TriggerRegistry after construction.
+ *
+ * Default state: enabled, debugVisualize on, force direction +Y,
+ * forceMagnitude 10, unlimited uses.
+ *
+ * @param triggerName  Human-readable name used in the editor and debug output.
+ * @param triggerType  Determines the default behaviour (TELEPORT, SPEED_ZONE,
+ *                     or EVENT for callback-only triggers).
+ * @param pos          World-space centre of the trigger volume.
+ * @param size         Full extents of the box volume (not half-extents).
+ */
 Trigger::Trigger(const std::string& triggerName,
     TriggerType triggerType,
     const glm::vec3& pos,
@@ -45,11 +87,27 @@ Trigger::Trigger(const std::string& triggerName,
     std::cout << "Created trigger '" << name << "' at ("
         << pos.x << ", " << pos.y << ", " << pos.z << ")" << std::endl;
 }
-
+/**
+ * @brief Destroys the trigger and frees the Bullet ghost object and shape.
+ *
+ * TriggerRegistry is responsible for removing the ghost object from the
+ * Bullet world before this destructor runs to prevent dangling pointers
+ * inside the broadphase.
+ */
 Trigger::~Trigger() {
     delete ghostObject;
     delete shape;
 }
+// Tag filtering
+/**
+ * @brief Adds a required tag to this trigger's filter set.
+ *
+ * Once at least one required tag is set, only objects that have ALL required
+ * tags will activate the trigger. An empty required-tag set means the trigger
+ * affects every dynamic body regardless of tags.
+ *
+ * @param tag  The tag string that overlapping objects must have.
+ */
 void Trigger::requireTag(const std::string& tag)
 {
     std::cout << "[Trigger] requireTag called: '" << tag << "' on '" << name << "'" << std::endl;
@@ -57,6 +115,15 @@ void Trigger::requireTag(const std::string& tag)
 }
 // Returns true if obj has ALL of the trigger's required tags,
 // or if no required tags have been set (empty = affect everything).
+/**
+ * @brief Returns true if `obj` passes the trigger's tag filter.
+ *
+ * An empty requiredTags set always returns true (trigger affects everything).
+ * Otherwise the object must have every tag in requiredTags.
+ *
+ * @param obj  The GameObject to test.
+ * @return     True if the object has all required tags (or no filter is set).
+ */
 bool Trigger::passesTagFilter(GameObject* obj) const
 {
     if (requiredTags.empty()) return true;   // no filter — affect everything
@@ -64,6 +131,28 @@ bool Trigger::passesTagFilter(GameObject* obj) const
         if (!obj->hasTag(tag)) return false; // missing at least one required tag
     return true;
 }
+
+/**
+ * @brief Detects enter, stay, and exit events by diffing the current overlap
+ *        list against the previous frame's list.
+ *
+ * Called once per physics tick by TriggerRegistry::update(). The update loop:
+ *   1. Queries Bullet's ghost object for all currently overlapping bodies.
+ *   2. Skips static bodies (invMass == 0) and objects that fail the tag filter.
+ *   3. Compares the current list against objectsInside (last frame's list) to
+ *      identify newly entered objects.
+ *   4. For new entries: checks the usage limit, increments the use counter,
+ *      fires onEnterCallback or executeDefaultBehavior(), and marks the trigger
+ *      for destruction if maxUses is reached.
+ *   5. For objects already inside: fires onStayCallback if set.
+ *   6. For objects that were inside last frame but are no longer: fires
+ *      onExitCallback if set.
+ *   7. Replaces objectsInside with the current frame's list.
+ *
+ * @param world      The Bullet dynamics world (unused directly, reserved for
+ *                   future overlap query variants).
+ * @param deltaTime  Physics timestep passed to onStayCallback.
+ */
 void Trigger::update(btDiscreteDynamicsWorld* world, float deltaTime) {
     if (!enabled || !ghostObject) return;
 
@@ -156,6 +245,22 @@ void Trigger::update(btDiscreteDynamicsWorld* world, float deltaTime) {
     objectsInside = currentlyInside;
 }
 
+// Default behavior for built-in trigger types
+
+
+/**
+ * @brief Executes the built-in behaviour for TELEPORT and SPEED_ZONE triggers.
+ *
+ * Called by update() when no onEnterCallback has been registered. EVENT
+ * triggers do nothing here — they are intended to be fully driven by callbacks
+ * set via registerTriggerScript().
+ *
+ * TELEPORT: immediately sets the object's position to teleportDestination.
+ * SPEED_ZONE: applies a one-shot central impulse in forceDirection scaled by
+ *             forceMagnitude.
+ *
+ * @param obj  The GameObject that just entered the trigger.
+ */
 void Trigger::executeDefaultBehavior(GameObject* obj) {
     if (!obj) return;
 
@@ -187,6 +292,16 @@ void Trigger::executeDefaultBehavior(GameObject* obj) {
     }
 }
 
+//Setters
+
+/**
+ * @brief Moves the trigger volume to a new world-space position.
+ *
+ * Updates both the cached position field and the Bullet ghost object's
+ * world transform so overlap detection immediately reflects the new location.
+ *
+ * @param pos  New world-space centre position.
+ */
 void Trigger::setPosition(const glm::vec3& pos) {
     position = pos;
 
@@ -197,6 +312,16 @@ void Trigger::setPosition(const glm::vec3& pos) {
     }
 }
 
+/**
+ * @brief Resizes the trigger volume by recreating the Bullet collision shape.
+ *
+ * Bullet collision shapes are immutable after creation, so resizing requires
+ * deleting the old btBoxShape and creating a new one. The ghost object's shape
+ * pointer is updated immediately so the change takes effect on the next
+ * broadphase update.
+ *
+ * @param newSize  New full extents of the box volume (not half-extents).
+ */
 void Trigger::setSize(const glm::vec3& newSize) {
     size = newSize;
 
@@ -208,6 +333,17 @@ void Trigger::setSize(const glm::vec3& newSize) {
         ghostObject->setCollisionShape(shape);
     }
 }
+
+/**
+ * @brief Sets the force direction and magnitude for SPEED_ZONE triggers.
+ *
+ * The direction is normalised internally. If a zero vector is passed the
+ * direction defaults to +Y to prevent NaN in the force calculation.
+ *
+ * @param direction  Desired force direction in world space. Need not be
+ *                   pre-normalised. Falls back to +Y if zero-length.
+ * @param magnitude  Force magnitude in N·s (applied as an impulse on enter).
+ */
 void Trigger::setForce(const glm::vec3& direction, float magnitude)
 {
     // Safely normalize — avoid NaN if zero vector passed

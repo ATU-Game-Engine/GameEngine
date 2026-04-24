@@ -1,3 +1,19 @@
+/**
+ * @file ConstraintTemplate.cpp
+ * @brief Implementation of ConstraintTemplate and ConstraintTemplateRegistry.
+ *
+ * A ConstraintTemplate is a reusable blueprint that stores a constraint type
+ * and its full parameter set (hinge limits, spring stiffness, etc.) without
+ * being bound to any specific GameObjects. Templates are created once, saved
+ * to disk, and then applied to arbitrary object pairs at runtime via
+ * applyTemplate(), which delegates to the appropriate ConstraintPreset factory.
+ *
+ * ConstraintTemplateRegistry is a singleton that manages the in-memory
+ * collection of templates and handles serialisation to a simple key=value
+ * text file. It also provides smart pivot helpers that compute body-local
+ * attachment points from object scale, removing the need to hard-code
+ * offsets when applying templates to objects of varying sizes.
+ */
 #include "../include/Physics/ConstraintTemplate.h"
 #include "../include/Physics/ConstraintPreset.h"
 #include "../include/Scene/GameObject.h"
@@ -9,15 +25,29 @@
 // Initialize static instance
 ConstraintTemplateRegistry* ConstraintTemplateRegistry::instance = nullptr;
 
-// ========== ConstraintTemplate ==========
-
+// ConstraintTemplate 
+/**
+ * @brief Constructs a named template of a given constraint type.
+ *
+ * All parameter structs (hingeParams, sliderParams, etc.) are value-initialised
+ * to their defaults. Populate the relevant struct before passing the template
+ * to addTemplate().
+ *
+ * @param templateName  Human-readable identifier used for lookup and file I/O.
+ * @param templateType  Determines which parameter struct is active and which
+ *                      ConstraintPreset factory applyTemplate() will call.
+ */
 ConstraintTemplate::ConstraintTemplate(const std::string& templateName, ConstraintType templateType)
     : name(templateName), type(templateType)
 {
 }
 
-// ========== ConstraintTemplateRegistry ==========
-
+// ConstraintTemplateRegistry 
+/**
+ * @brief Constructs the registry with the default templates file path.
+ *
+ * The file path is used by save() and load() when no explicit path is given.
+ */
 ConstraintTemplateRegistry::ConstraintTemplateRegistry()
     : templatesFilePath("constraint_templates.txt")
 {
@@ -26,6 +56,13 @@ ConstraintTemplateRegistry::ConstraintTemplateRegistry()
 ConstraintTemplateRegistry::~ConstraintTemplateRegistry() {
 }
 
+/**
+ * @brief Returns the global ConstraintTemplateRegistry instance.
+ *
+ * Created on first call and never destroyed — lives for the application lifetime.
+ *
+ * @return Reference to the singleton instance.
+ */
 ConstraintTemplateRegistry& ConstraintTemplateRegistry::getInstance() {
     if (!instance) {
         instance = new ConstraintTemplateRegistry();
@@ -33,8 +70,16 @@ ConstraintTemplateRegistry& ConstraintTemplateRegistry::getInstance() {
     return *instance;
 }
 
-// ========== Template Management ==========
-
+//  Template Management 
+/**
+ * @brief Adds a new template or replaces an existing one with the same name.
+ *
+ * Name collision results in an in-place update rather than a duplicate entry,
+ * so it is safe to call addTemplate() repeatedly when reloading defaults or
+ * refreshing a template from the editor.
+ *
+ * @param templ  The template to store. Copied into the internal vector.
+ */
 void ConstraintTemplateRegistry::addTemplate(const ConstraintTemplate& templ) {
     // Check if template with same name exists
     for (auto& existing : templates) {
@@ -49,6 +94,12 @@ void ConstraintTemplateRegistry::addTemplate(const ConstraintTemplate& templ) {
     std::cout << "Added new template: " << templ.name << std::endl;
 }
 
+/**
+ * @brief Removes the template with the given name.
+ *
+ * @param name  Name of the template to remove.
+ * @return      True if found and removed, false if no template with that name exists.
+ */
 bool ConstraintTemplateRegistry::removeTemplate(const std::string& name) {
     auto it = std::find_if(templates.begin(), templates.end(),
         [&name](const ConstraintTemplate& t) { return t.name == name; });
@@ -62,13 +113,28 @@ bool ConstraintTemplateRegistry::removeTemplate(const std::string& name) {
     return false;
 }
 
+/**
+ * @brief Removes all templates from the in-memory collection.
+ *
+ * Does not affect the templates file on disk. Call save() afterward if
+ * the cleared state should be persisted.
+ */
 void ConstraintTemplateRegistry::clearAllTemplates() {
     templates.clear();
     std::cout << "Cleared all constraint templates" << std::endl;
 }
 
-// ========== Queries ==========
-
+//  Queries 
+/**
+ * @brief Returns a const pointer to the template with the given name.
+ *
+ * Linear scan — template lists are expected to be small (< 100 entries)
+ * so an unordered_map is not warranted here.
+ *
+ * @param name  Template name to search for.
+ * @return      Pointer into the internal vector, or nullptr if not found.
+ *              Valid until the next addTemplate / removeTemplate call.
+ */
 const ConstraintTemplate* ConstraintTemplateRegistry::getTemplate(const std::string& name) const {
     for (const auto& templ : templates) {
         if (templ.name == name) {
@@ -78,6 +144,13 @@ const ConstraintTemplate* ConstraintTemplateRegistry::getTemplate(const std::str
     return nullptr;
 }
 
+/**
+ * @brief Returns the names of all registered templates in storage order.
+ *
+ * Intended for populating editor dropdowns and debug listings.
+ *
+ * @return  Vector of name strings copied from the internal templates.
+ */
 std::vector<std::string> ConstraintTemplateRegistry::getTemplateNames() const {
     std::vector<std::string> names;
     names.reserve(templates.size());
@@ -89,12 +162,34 @@ std::vector<std::string> ConstraintTemplateRegistry::getTemplateNames() const {
     return names;
 }
 
+/**
+ * @brief Returns true if a template with the given name is registered.
+ *
+ * @param name  Name to check.
+ */
 bool ConstraintTemplateRegistry::hasTemplate(const std::string& name) const {
     return getTemplate(name) != nullptr;
 }
 
-// ========== Smart Pivot Calculation ==========
-
+//  Smart Pivot Calculation 
+/**
+ * @brief Computes a body-local attachment point scaled to the object's dimensions.
+ *
+ * When useEdge is true, relativeOffset is treated as a direction vector and
+ * scaled by the object's half-extents, placing the pivot at the surface of
+ * the bounding box. This is useful for hinges where the pivot should sit at
+ * the edge of a door or panel rather than at the object's centre.
+ *
+ * When useEdge is false, relativeOffset is returned directly as a centre-
+ * relative offset without any scaling.
+ *
+ * @param obj             The object to compute the pivot for. Returns (0,0,0)
+ *                        if null.
+ * @param relativeOffset  Direction/offset in the object's local space.
+ * @param useEdge         True to scale by half-extents (edge attachment),
+ *                        false for a raw offset (centre attachment).
+ * @return                Body-local pivot position.
+ */
 glm::vec3 ConstraintTemplateRegistry::calculateSmartPivot(GameObject* obj, const glm::vec3& relativeOffset, bool useEdge) {
     if (!obj) return glm::vec3(0.0f);
 
@@ -113,6 +208,24 @@ glm::vec3 ConstraintTemplateRegistry::calculateSmartPivot(GameObject* obj, const
     return relativeOffset;
 }
 
+/**
+ * @brief Computes a sensible hinge pivot position on objA given the hinge axis.
+ *
+ * Identifies the dominant component of the axis vector and places the pivot
+ * at the edge of objA's bounding box perpendicular to that axis:
+ *   - Y-axis hinge (e.g. door): pivot placed at the left (-X) edge.
+ *   - X-axis hinge: pivot placed at the front (-Z) edge.
+ *   - Z-axis hinge: pivot placed at the left (-X) edge.
+ *
+ * This prevents the hinge pivot from sitting at the object centre, which
+ * would cause the object to swing through itself.
+ *
+ * @param objA  The primary body. Returns (0,0,0) if null.
+ * @param objB  The secondary body (unused currently, reserved for future
+ *              relative-offset calculation).
+ * @param axis  The intended hinge rotation axis in local space.
+ * @return      Body-local pivot position for objA.
+ */
 glm::vec3 ConstraintTemplateRegistry::calculateHingePivot(GameObject* objA, GameObject* objB, const glm::vec3& axis) {
     if (!objA) return glm::vec3(0.0f);
 
@@ -147,8 +260,29 @@ glm::vec3 ConstraintTemplateRegistry::calculateHingePivot(GameObject* objA, Game
     return pivot;
 }
 
-// ========== Apply Template ==========
-
+//  Apply Template 
+/**
+ * @brief Creates a Constraint by applying a named template to two GameObjects.
+ *
+ * Looks up the template, selects the matching ConstraintPreset factory, and
+ * optionally auto-calculates pivot positions when the template's pivot is
+ * near zero (indicating it should be derived from object scale rather than
+ * stored as an absolute offset).
+ *
+ * Breaking thresholds stored in the template are forwarded to the new
+ * Constraint after creation.
+ *
+ * The returned Constraint is not automatically registered — pass it to
+ * ConstraintRegistry::addConstraint() to make it active in the simulation.
+ *
+ * @param templateName  Name of the template to apply.
+ * @param objA          Primary body. Must have a physics component.
+ * @param objB          Secondary body, or nullptr where supported (e.g. hinge
+ *                      anchored to the world).
+ * @return              Owning pointer to the new Constraint, or nullptr on
+ *                      failure (template not found, objA missing physics, or
+ *                      the underlying preset returns null).
+ */
 std::unique_ptr<Constraint> ConstraintTemplateRegistry::applyTemplate(
     const std::string& templateName,
     GameObject* objA,
@@ -220,8 +354,20 @@ std::unique_ptr<Constraint> ConstraintTemplateRegistry::applyTemplate(
     return constraint;
 }
 
-// ========== File I/O (Simple Text Format) ==========
-
+//  File I/O (Simple Text Format) 
+/**
+ * @brief Serialises all templates to a simple key=value text file.
+ *
+ * Format uses TEMPLATE_START / TEMPLATE_END delimiters with one key=value
+ * pair per line. Type-specific parameters are prefixed with the type name
+ * (e.g. hinge_pivotA, spring_stiffness0) to avoid key collisions.
+ *
+ * Only the types with non-trivial parameters (Hinge, Slider, Spring) write
+ * type-specific lines; Fixed and Generic6DOF rely on common fields only.
+ *
+ * @param filepath  Destination file path. Parent directory must exist.
+ * @return          True on success, false if the file could not be opened.
+ */
 bool ConstraintTemplateRegistry::saveToFile(const std::string& filepath) {
     std::ofstream file(filepath);
     if (!file.is_open()) {
@@ -292,7 +438,20 @@ bool ConstraintTemplateRegistry::saveToFile(const std::string& filepath) {
     std::cout << "Saved " << templates.size() << " templates to " << filepath << std::endl;
     return true;
 }
-
+/**
+ * @brief Loads templates from a key=value text file, replacing the current set.
+ *
+ * Clears the in-memory collection before parsing. Lines beginning with '#'
+ * and empty lines are skipped. Each template block is delimited by
+ * TEMPLATE_START and TEMPLATE_END tokens. Unknown keys are silently ignored
+ * so older files remain forward-compatible.
+ *
+ * Returns false (non-fatal) if the file does not exist — this is expected on
+ * first run before any templates have been saved.
+ *
+ * @param filepath  Source file path.
+ * @return          True if the file was opened and parsed successfully.
+ */
 bool ConstraintTemplateRegistry::loadFromFile(const std::string& filepath) {
     std::ifstream file(filepath);
     if (!file.is_open()) {
@@ -387,22 +546,45 @@ bool ConstraintTemplateRegistry::loadFromFile(const std::string& filepath) {
     std::cout << "Loaded " << templates.size() << " templates from " << filepath << std::endl;
     return true;
 }
-
+/**
+ * @brief Saves templates to the default file path (constraint_templates.txt).
+ *
+ * Convenience wrapper around saveToFile() using the path set at construction.
+ *
+ * @return  True on success.
+ */
 bool ConstraintTemplateRegistry::save() {
     return saveToFile(templatesFilePath);
 }
-
+/**
+ * @brief Loads templates from the default file path (constraint_templates.txt).
+ *
+ * Convenience wrapper around loadFromFile() using the path set at construction.
+ *
+ * @return  True if the file was found and loaded successfully.
+ */
 bool ConstraintTemplateRegistry::load() {
     return loadFromFile(templatesFilePath);
 }
 
-// ========== Default Templates ==========
-
+// Default Templates
+/**
+ * @brief Populates the registry with built-in default templates.
+ *
+ * Currently empty — add common presets here (e.g. "door_hinge", "piston",
+ * "suspension") so new scenes have sensible starting points without requiring
+ * a saved template file.
+ */
 void ConstraintTemplateRegistry::initializeDefaults() {
  }
 
-// ========== Debug ==========
-
+//  Debug 
+/**
+ * @brief Prints a summary of all registered templates to stdout.
+ *
+ * Lists each template's name, type integer, optional description, and
+ * breaking thresholds if the template is breakable.
+ */
 void ConstraintTemplateRegistry::printTemplates() const {
     std::cout << "\n=== Constraint Templates ===" << std::endl;
     std::cout << "Total templates: " << templates.size() << std::endl;

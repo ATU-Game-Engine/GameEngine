@@ -1,4 +1,22 @@
-﻿#include "../include/Physics/Physics.h"
+﻿/**
+ * @file Physics.cpp
+ * @brief Implementation of the Physics system, which wraps the Bullet Physics
+ *        library and provides rigid body creation, resizing, removal, and
+ *        per-tick simulation stepping.
+ *
+ * The Physics class owns all Bullet infrastructure (world, dispatcher,
+ * broadphase, solver, collision shapes, rigid bodies) and is responsible for
+ * their correct initialisation and teardown order. It also coordinates with
+ * ConstraintRegistry and TriggerRegistry so those systems are updated each
+ * physics tick and cleaned up on shutdown.
+ *
+ * Typical per-frame flow (managed by Engine):
+ *   1. Engine accumulates time and calls Physics::update() at a fixed 1/60 s rate.
+ *   2. Physics::update() steps Bullet, then ticks ConstraintRegistry and
+ *      TriggerRegistry.
+ *   3. Scene::update() syncs GameObject transforms from the updated rigid bodies.
+ */
+#include "../include/Physics/Physics.h"
 #include "../include/Scene/GameObject.h"
 #include "../include/Physics/PhysicsMaterial.h"
 #include "../include/Physics/ConstraintRegistry.h"
@@ -6,7 +24,11 @@
 #include "../include/Physics/TriggerRegistry.h" 
 #include <iostream>
 
-
+ /**
+  * @brief Constructs the Physics system with all Bullet pointers null.
+  *
+  * Call initialize() before using any other methods.
+  */
 Physics::Physics(): 
     collisionConfiguration(nullptr), 
     dispatcher(nullptr), 
@@ -16,10 +38,28 @@ Physics::Physics():
 {
 }
 
+/**
+ * @brief Destructor — calls cleanup() to release all Bullet resources.
+ */
 Physics::~Physics() {
     cleanup();
 }
 
+/**
+ * @brief Creates and configures the Bullet physics world.
+ *
+ * Initialisation order follows Bullet's requirements:
+ *   1. MaterialRegistry defaults are seeded so createRigidBody() can look
+ *      up materials immediately.
+ *   2. Collision pipeline components are created (configuration, dispatcher,
+ *      broadphase, solver).
+ *   3. The btDiscreteDynamicsWorld is constructed from those components.
+ *   4. Gravity is set to -9.8 m/s² on the Y axis.
+ *   5. PhysicsQuery, ConstraintRegistry, and TriggerRegistry are initialised
+ *      with the new world pointer.
+ *
+ * Must be called once before any calls to createRigidBody() or update().
+ */
 void Physics::initialize() {
     std::cout << "Initializing Bullet Physics..." << std::endl;
 
@@ -60,14 +100,54 @@ void Physics::initialize() {
     TriggerRegistry::getInstance().initialize(dynamicsWorld);
     std::cout << "Physics initialized successfully" << std::endl;
 }
+
 // create a rigid body without a material
+/**
+ * @brief Creates a rigid body using the "Default" physics material.
+ *
+ * Convenience overload that forwards to the full signature with materialName
+ * set to "Default". Use when material properties do not matter or are handled
+ * separately after creation.
+ *
+ * @param type      Collision shape type (CUBE, SPHERE, CAPSULE).
+ * @param position  Initial world-space position.
+ * @param size      Shape dimensions (half-extents for CUBE, radius for SPHERE,
+ *                  radius + total height for CAPSULE).
+ * @param mass      Mass in kg. 0 creates a static (immovable) body.
+ * @return          Pointer to the new rigid body, owned by this Physics system.
+ */
 btRigidBody* Physics::createRigidBody(ShapeType type,
     const glm::vec3& position,
     const glm::vec3& size,
     float mass) {
     return createRigidBody(type, position, size, mass, "Default");
 }
+
 // create a rigid body with a material
+/**
+ * @brief Creates a rigid body with a named physics material.
+ *
+ * Allocates a Bullet collision shape appropriate to `type`, computes local
+ * inertia for dynamic bodies, constructs the btRigidBody, applies material
+ * properties (friction, restitution), and registers it with the dynamics world.
+ *
+ * Shape size interpretation:
+ *   - CUBE:    size is full extents; Bullet receives half-extents internally.
+ *   - SPHERE:  size.x is the radius; size.y and size.z are ignored.
+ *   - CAPSULE: size.x is the radius; size.y is the total height (cylinder
+ *              height = size.y - 2 * size.x, clamped to 0.1 minimum).
+ *
+ * Both the collision shape and the rigid body pointer are stored internally
+ * for cleanup in removeRigidBody() and cleanup().
+ *
+ * @param type          Collision shape type.
+ * @param position      Initial world-space position.
+ * @param size          Shape dimensions (see above).
+ * @param mass          Mass in kg. 0 = static body (infinite mass).
+ * @param materialName  Name of a material registered with MaterialRegistry.
+ *                      Falls back to "Default" if the name is not found.
+ * @return              Pointer to the new rigid body, owned by this Physics system.
+ */
 btRigidBody* Physics::createRigidBody(
     ShapeType type,
     const glm::vec3& position,
@@ -138,7 +218,29 @@ btRigidBody* Physics::createRigidBody(
     return body;
 }
 
-
+/**
+ * @brief Replaces a GameObject's rigid body with a new one at a different scale.
+ *
+ * Used when the visual scale of an object changes and the collision shape must
+ * match. The operation:
+ *   1. Saves the current world transform, velocities, and damping from the old body.
+ *   2. Detaches constraints from the Bullet world (without removing them from
+ *      the registry) so they can be rebuilt with the new body pointer.
+ *   3. Removes and destroys the old rigid body.
+ *   4. Creates a new rigid body at the saved position with the new scale.
+ *   5. Restores all saved state to the new body.
+ *   6. Updates the GameObject's physics component to point at the new body.
+ *   7. Triggers ConstraintRegistry::rebuildConstraintsForObject() to reconnect
+ *      all joints to the new body pointer.
+ *
+ * @param owner        The GameObject whose body is being replaced. Must have a
+ *                     valid physics component and rigid body.
+ * @param type         Collision shape type for the new body.
+ * @param newScale     New collision shape dimensions.
+ * @param mass         Mass for the new body (typically same as old).
+ * @param materialName Physics material name for the new body.
+ * @return             Pointer to the new rigid body, or nullptr on failure.
+ */
 btRigidBody* Physics::resizeRigidBody(
     GameObject* owner,
     ShapeType type,
@@ -202,6 +304,19 @@ btRigidBody* Physics::resizeRigidBody(
     return newBody;
 }
 
+/**
+ * @brief Removes a rigid body from the simulation and frees all associated memory.
+ *
+ * Removal order is important:
+ *   1. Remove from the Bullet dynamics world first — accessing a body after
+ *      removal from the world causes undefined behaviour.
+ *   2. Delete and untrack the collision shape — orphaned shapes accumulate in
+ *      the broadphase cache and can cause stale-pointer crashes on reload.
+ *   3. Remove from the internal tracking vectors.
+ *   4. Delete the motion state and the rigid body itself.
+ *
+ * @param body  The rigid body to remove. No-op if null or world is null.
+ */
 void Physics::removeRigidBody(btRigidBody* body) {
     if (!body || !dynamicsWorld) return;
 
@@ -230,6 +345,16 @@ void Physics::removeRigidBody(btRigidBody* body) {
     delete body;
 }
 
+// MAaterial application helper
+/**
+ * @brief Applies friction and restitution from a PhysicsMaterial to a body.
+ *
+ * Called internally by createRigidBody() after the body is constructed.
+ * Density from the material is used at mass-calculation time, not here.
+ *
+ * @param body      The rigid body to configure. No-op if null.
+ * @param material  The material whose properties should be applied.
+ */
 void Physics::applyMaterial(btRigidBody* body, const PhysicsMaterial& material) {
     if (!body) return;
 
@@ -246,6 +371,18 @@ void Physics::applyMaterial(btRigidBody* body, const PhysicsMaterial& material) 
     
 }
 
+/**
+ * @brief Advances the physics simulation by one fixed timestep.
+ *
+ * Called by Engine at a fixed rate of 1/60 s. maxSubSteps is set to 1
+ * because the Engine's fixed-timestep loop already ensures the delta never
+ * exceeds fixedDeltaTime — Bullet does not need to subdivide further.
+ *
+ * After stepping, ConstraintRegistry::update() checks for broken joints and
+ * TriggerRegistry::update() fires enter/exit/stay callbacks for all triggers.
+ *
+ * @param fixedDeltaTime  The fixed simulation timestep in seconds (always 1/60).
+ */
 void Physics::update(float fixedDeltaTime) {
     if (!dynamicsWorld) return;
 
@@ -259,11 +396,30 @@ void Physics::update(float fixedDeltaTime) {
     TriggerRegistry::getInstance().update(fixedDeltaTime);
 }
 
+/**
+ * @brief Returns the number of collision objects currently in the dynamics world.
+ *
+ * Includes both rigid bodies and ghost objects (triggers). Useful for
+ * performance monitoring and debug overlays.
+ *
+ * @return  Object count, or 0 if the world has not been initialised.
+ */
 int Physics::getRigidBodyCount() const {
     if (!dynamicsWorld) return 0;
     return dynamicsWorld->getNumCollisionObjects();
 }
 
+/**
+ * @brief Destroys all physics resources in the correct teardown order.
+ *
+ * Constraints and triggers are cleared via their registries first, then all
+ * rigid bodies are removed from the world and deleted, then collision shapes
+ * are deleted, and finally the Bullet world and pipeline components are
+ * destroyed and their pointers nulled.
+ *
+ * Safe to call multiple times — the early-out guard on dynamicsWorld prevents
+ * double-free. Called automatically by the destructor.
+ */
 void Physics::cleanup() {
     if (!dynamicsWorld) return ;
 

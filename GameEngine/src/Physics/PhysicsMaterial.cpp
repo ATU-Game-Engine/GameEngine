@@ -1,54 +1,139 @@
+/**
+ * @file PhysicsMaterial.cpp
+ * @brief Implementation of PhysicsMaterial presets and the MaterialRegistry singleton.
+ *
+ * PhysicsMaterial is a lightweight value type that pairs friction and restitution
+ * values with a name string. Eight built-in presets cover the most common surface
+ * types (Default, Wood, Metal, Rubber, Ice, Concrete, Plastic, Glass).
+ *
+ * MaterialRegistry is a Meyer's singleton that stores all materials in an
+ * unordered_map keyed by name. It is initialised on first access and pre-populated
+ * with the eight built-in presets. Custom materials can be added at runtime via
+ * registerMaterial().
+ *
+ * Physics::createRigidBody() calls getMaterial() to apply friction and restitution
+ * to each newly created rigid body. If a requested material name is not found,
+ * getMaterial() falls back to "Default" and logs a warning.
+ */
 #include "../include/Physics/PhysicsMaterial.h"
 #include <iostream>
 
-
+ /**
+  * @brief Constructs a named material with explicit friction and restitution.
+  *
+  * @param name         Unique identifier used for registry lookups.
+  * @param friction     Surface friction coefficient. 0 = frictionless (ice),
+  *                     1 = high grip, >1 = very high grip (rubber on concrete).
+  *                     Bullet multiplies the friction of both contacting surfaces.
+  * @param restitution  Bounciness coefficient. 0 = no bounce (absorbs all energy),
+  *                     1 = perfectly elastic (retains all energy). Values near 1
+  *                     can cause energy gain — keep below 1 for stable simulation.
+  */
 PhysicsMaterial::PhysicsMaterial(const std::string& name,
     float friction,
     float restitution)
     : name(name), friction(friction), restitution(restitution)
 {
 }
+
 // Default material constructor
+/**
+ * @brief Default constructor — creates the "Default" material preset.
+ *
+ * Equivalent to PhysicsMaterial("Default", 0.5f, 0.3f). Provided so the
+ * type can be used as a map value without requiring an explicit initialiser.
+ */
 PhysicsMaterial::PhysicsMaterial()
     : PhysicsMaterial("Default", 0.5f, 0.3f) {
 }
 
 
-
+/**
+ * @brief Returns the Default material — balanced friction and light bounce.
+ *
+ * Used as a fallback when no material name is specified or a lookup fails.
+ * friction=0.5, restitution=0.3.
+ */
 PhysicsMaterial PhysicsMaterial::Default() {
     return PhysicsMaterial("Default", 0.5f, 0.3f);
 }
 
+/**
+ * @brief Returns the Wood material — moderate friction, some bounce.
+ *
+ * Suitable for crates, floors, furniture.
+ * friction=0.8, restitution=0.4.
+ */
 PhysicsMaterial PhysicsMaterial::Wood() {
     // Wood: moderate friction, some bounce
     return PhysicsMaterial("Wood", 0.8f, 0.4f);
 }
 
+/**
+ * @brief Returns the Metal material — low friction, high bounce.
+ *
+ * Suitable for steel panels, machinery, railings.
+ * friction=0.3, restitution=0.7.
+ */
 PhysicsMaterial PhysicsMaterial::Metal() {
     // Metal: low friction, high bounce
     return PhysicsMaterial("Metal", 0.3f, 0.7f);
 }
 
+/**
+ * @brief Returns the Rubber material — maximum friction and near-full bounce.
+ *
+ * Objects should bounce almost as high as they fell and grip surfaces very
+ * tightly. friction=1.0, restitution=0.95.
+ */
 PhysicsMaterial PhysicsMaterial::Rubber() {
     // Rubber: MAXIMUM BOUNCE - should bounce almost as high as it fell
     return PhysicsMaterial("Rubber", 1.0f, 0.95f);
 }
 
+
+/**
+ * @brief Returns the Ice material — zero friction, minimal bounce.
+ *
+ * Objects slide with almost no resistance and barely bounce on contact.
+ * friction=0.0, restitution=0.05.
+ */
 PhysicsMaterial PhysicsMaterial::Ice() {
     // Ice: ZERO friction, almost no bounce - should slide forever
     return PhysicsMaterial("Ice", 0.0f, 0.05f);
 }
 
+
+/**
+ * @brief Returns the Concrete material — very high friction, no bounce.
+ *
+ * Objects stop dead on contact. Suitable for ground planes, walls, floors.
+ * friction=1.5, restitution=0.0.
+ */
 PhysicsMaterial PhysicsMaterial::Concrete() {
     // Concrete: high friction, ZERO bounce - should stop dead
     return PhysicsMaterial("Concrete", 1.5f, 0.0f);
 }
 
+
+/**
+ * @brief Returns the Plastic material — medium friction and bounce.
+ *
+ * Generic mid-range material for everyday props.
+ * friction=0.5, restitution=0.5.
+ */
 PhysicsMaterial PhysicsMaterial::Plastic() {
     // Plastic: medium everything
     return PhysicsMaterial("Plastic", 0.5f, 0.5f);
 }
 
+
+/**
+ * @brief Returns the Glass material — low friction, low bounce.
+ *
+ * Suitable for smooth, hard surfaces that don't grip or spring back much.
+ * friction=0.2, restitution=0.2.
+ */
 PhysicsMaterial PhysicsMaterial::Glass() {
     // Glass: low friction, low bounce
     return PhysicsMaterial("Glass", 0.2f, 0.2f);

@@ -1,3 +1,18 @@
+/**
+ * @file ForceGenerator.cpp
+ * @brief Implementation of all ForceGenerator subtypes.
+ *
+ * Each subtype applies a distinct force model to rigid bodies within its
+ * radius every physics tick via ForceGeneratorRegistry::update(). All types
+ * inherit the common base (name, position, radius, strength, enabled flag)
+ * and override apply() with their own force calculation.
+ *
+ * Subtypes:
+ *   WindGenerator        — constant directional force within a radius.
+ *   GravityWellGenerator — inverse-square attraction or repulsion toward a point.
+ *   VortexGenerator      — tangential spin combined with an inward pull.
+ *   ExplosionGenerator   — single-frame radial impulse with linear distance falloff.
+ */
 #include "../include/Physics/ForceGenerator.h"
 #include <glm/glm.hpp>
 #include <iostream>
@@ -7,6 +22,19 @@ uint64_t ForceGenerator::nextID = 1;
 
 
 // Base
+/**
+ * @brief Constructs a ForceGenerator with common fields shared by all subtypes.
+ *
+ * Generators are enabled by default. The ID is assigned from a monotonically
+ * increasing counter so each generator has a unique identity for the lifetime
+ * of the application.
+ *
+ * @param name      Human-readable label used in the editor and debug output.
+ * @param type      Enum tag identifying the concrete subtype.
+ * @param position  World-space centre of the generator's area of effect.
+ * @param radius    Radius of the area of effect. 0 or negative = infinite range.
+ * @param strength  Primary force magnitude; interpretation varies by subtype.
+ */
 ForceGenerator::ForceGenerator(const std::string& name,
     ForceGeneratorType type,
     const glm::vec3& position,
@@ -21,7 +49,15 @@ ForceGenerator::ForceGenerator(const std::string& name,
     id(nextID++)
 {
 }
-
+/**
+ * @brief Returns true if bodyPos falls within the generator's area of effect.
+ *
+ * A radius of zero or less is treated as infinite range, so every body
+ * in the scene is considered in-range regardless of distance.
+ *
+ * @param bodyPos  World-space position of the rigid body being tested.
+ * @return         True if the body is within range.
+ */
 bool ForceGenerator::isInRange(const glm::vec3& bodyPos) const
 {
     // radius == 0 means infinite range
@@ -30,6 +66,16 @@ bool ForceGenerator::isInRange(const glm::vec3& bodyPos) const
 }
 
 // WIND
+/**
+ * @brief Constructs a wind generator with a normalised direction vector.
+ *
+ * @param name       Label for the editor and debug output.
+ * @param position   Centre of the wind area.
+ * @param radius     Radius within which bodies are affected (0 = infinite).
+ * @param direction  Desired wind direction. Will be normalised internally.
+ *                   Defaults to +X if a zero vector is passed.
+ * @param strength   Force magnitude applied each physics tick (Newtons).
+ */
 WindGenerator::WindGenerator(const std::string& name,
     const glm::vec3& position,
     float radius,
@@ -39,13 +85,31 @@ WindGenerator::WindGenerator(const std::string& name,
 {
     setDirection(direction);
 }
-
+/**
+ * @brief Sets the wind direction, normalising the input vector.
+ *
+ * Falls back to +X if a zero-length vector is provided to prevent NaN
+ * in the force calculation.
+ *
+ * @param dir  Desired wind direction (need not be pre-normalised).
+ */
 void WindGenerator::setDirection(const glm::vec3& dir)
 {
     float len = glm::length(dir);
     direction = (len > 0.0001f) ? dir / len : glm::vec3(1, 0, 0);
 }
-
+/**
+ * @brief Applies a constant directional force to a body within range.
+ *
+ * Force magnitude is uniform across the entire radius — there is no
+ * distance-based falloff. The body is woken from sleep before the force
+ * is applied so stationary objects respond immediately.
+ *
+ * @param body       The Bullet rigid body to push.
+ * @param bodyPos    World-space position of the body (pre-fetched by registry).
+ * @param deltaTime  Physics timestep (unused — Bullet integrates
+ *                   applyCentralForce over dt internally).
+ */
 void WindGenerator::apply(btRigidBody* body, const glm::vec3& bodyPos, float deltaTime)
 {
     if (!body || !isInRange(bodyPos)) return;
@@ -62,6 +126,17 @@ void WindGenerator::apply(btRigidBody* body, const glm::vec3& bodyPos, float del
 }
 
 // GRAVITY WELL
+/**
+ * @brief Constructs a gravity well that attracts or repels bodies.
+ *
+ * @param name         Label for the editor and debug output.
+ * @param position     World-space location of the well's centre.
+ * @param radius       Radius within which bodies are affected (0 = infinite).
+ * @param strength     Force scale. Positive = attract, negative = repel.
+ * @param minDistance  Minimum clamped distance used in the force calculation.
+ *                     Prevents the force approaching infinity when a body is
+ *                     very close to the centre. Default: 1.0.
+ */
 GravityWellGenerator::GravityWellGenerator(const std::string& name,
     const glm::vec3& position,
     float radius,
@@ -71,7 +146,17 @@ GravityWellGenerator::GravityWellGenerator(const std::string& name,
     minDistance(minDistance)
 {
 }
-
+/**
+ * @brief Applies an inverse-square force directed toward or away from the well.
+ *
+ * Force magnitude follows F = strength / dist², clamped at minDistance to
+ * prevent instability at very short ranges. Positive strength attracts,
+ * negative strength repels.
+ *
+ * @param body       The Bullet rigid body to affect.
+ * @param bodyPos    World-space position of the body.
+ * @param deltaTime  Physics timestep (unused).
+ */
 void GravityWellGenerator::apply(btRigidBody* body, const glm::vec3& bodyPos, float deltaTime)
 {
     if (!body || !isInRange(bodyPos)) return;
@@ -99,6 +184,19 @@ void GravityWellGenerator::apply(btRigidBody* body, const glm::vec3& bodyPos, fl
 }
 
 // VORTEX
+/**
+ * @brief Constructs a vortex generator that spins bodies around an axis.
+ *
+ * @param name             Label for the editor and debug output.
+ * @param position         World-space centre of the vortex.
+ * @param radius           Radius within which bodies are affected (0 = infinite).
+ * @param axis             Rotation axis (will be normalised). Defaults to +Y
+ *                         if a zero vector is passed.
+ * @param rotationStrength Tangential force magnitude — controls spin speed.
+ *                         Stored as the base class `strength` field.
+ * @param pullStrength     Inward radial force magnitude — controls how tightly
+ *                         bodies spiral toward the vortex centre.
+ */
 VortexGenerator::VortexGenerator(const std::string& name,
     const glm::vec3& position,
     float radius,
@@ -111,7 +209,21 @@ VortexGenerator::VortexGenerator(const std::string& name,
     float len = glm::length(axis);
     this->axis = (len > 0.0001f) ? axis / len : glm::vec3(0, 1, 0);
 }
-
+/**
+ * @brief Applies a combined tangential spin and inward pull to a body.
+ *
+ * The tangential force is computed as cross(axis, toCenter), producing a
+ * vector perpendicular to both — this creates the orbital/spinning motion.
+ * A separate inward radial force (pullStrength) causes bodies to spiral
+ * inward rather than orbit at a fixed distance.
+ *
+ * Bodies exactly at the vortex centre (dist < 0.001) are skipped to avoid
+ * a zero-length cross product producing NaN.
+ *
+ * @param body       The Bullet rigid body to affect.
+ * @param bodyPos    World-space position of the body.
+ * @param deltaTime  Physics timestep (unused).
+ */
 void VortexGenerator::apply(btRigidBody* body, const glm::vec3& bodyPos, float deltaTime)
 {
     if (!body || !isInRange(bodyPos)) return;
@@ -141,6 +253,17 @@ void VortexGenerator::apply(btRigidBody* body, const glm::vec3& bodyPos, float d
 }
 
 // EXPLOSION
+/**
+ * @brief Constructs a single-use explosion generator.
+ *
+ * Explosions fire exactly once on the first update tick after creation and
+ * are then marked for removal by the registry via the `fired` flag.
+ *
+ * @param name      Label for the editor and debug output.
+ * @param position  World-space epicentre of the explosion.
+ * @param radius    Blast radius. Bodies beyond this distance are unaffected.
+ * @param strength  Peak impulse magnitude at the epicentre (N·s).
+ */
 ExplosionGenerator::ExplosionGenerator(const std::string& name,
     const glm::vec3& position,
     float radius,
@@ -149,7 +272,23 @@ ExplosionGenerator::ExplosionGenerator(const std::string& name,
     fired(false)
 {
 }
-
+/**
+ * @brief Applies a single outward impulse to a body within the blast radius.
+ *
+ * Impulse magnitude falls off linearly from `strength` at the epicentre to
+ * zero at the radius edge. Bodies at the exact epicentre receive a straight
+ * upward impulse rather than an undefined radial direction.
+ *
+ * Uses applyCentralImpulse rather than applyCentralForce because an explosion
+ * is an instantaneous event — the impulse is applied once and does not
+ * accumulate over multiple ticks. The `fired` flag is set to true by
+ * ForceGeneratorRegistry after all bodies have been processed, at which point
+ * the registry removes this generator from the scene.
+ *
+ * @param body       The Bullet rigid body to blast.
+ * @param bodyPos    World-space position of the body.
+ * @param deltaTime  Physics timestep (unused — impulse is instantaneous).
+ */
 void ExplosionGenerator::apply(btRigidBody* body, const glm::vec3& bodyPos, float deltaTime)
 {
     // Explosion only fires once across all bodies in the same frame
