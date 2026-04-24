@@ -5,6 +5,12 @@
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 
+/**
+ * @brief Drives a Camera in either free-fly or orbital mode.
+ *
+ * Call update() once per frame and processMouse() from the cursor callback.
+ * Switching modes via setMode() resets the relevant motion state automatically.
+ */
 class CameraController {
 
 public:

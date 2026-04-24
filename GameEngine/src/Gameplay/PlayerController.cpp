@@ -7,6 +7,14 @@
 #include <iostream>
 #include <cmath>
 
+/**
+ * @brief Constructs a PlayerController with a camera and optional physics query.
+ *
+ * @param cam   Pointer to the scene camera used for orbit and movement direction.
+ * @param query Pointer to the PhysicsQuery used for ground detection raycasts.
+ *              May be null; if so, isGrounded() will always return false and
+ *              jumping will be disabled.
+ */
 PlayerController::PlayerController(Camera* cam, PhysicsQuery* query)
     : camera(cam), physicsQuery(query)
 {
@@ -14,6 +22,13 @@ PlayerController::PlayerController(Camera* cam, PhysicsQuery* query)
 
 
 //  onStart - runs once when script is attached to the object
+
+/**
+ * @brief Lifecycle callback invoked once when the script is attached to its owner.
+ *
+ * Logs the owning object's name and emits a warning if no PhysicsQuery was
+ * provided, since ground detection will be non-functional without it.
+ */
 void PlayerController::onStart()
 {
     std::cout << "[PlayerController] Started on: " << owner->getName() << std::endl;
@@ -25,6 +40,25 @@ void PlayerController::onStart()
 // Handles: orbit camera rotation from mouse, camera position follow
 // NOT movement - that lives in onFixedUpdate to stay in sync with physics
 // handles stuff that doesnt require physics like camera rotation and input, so it can run every frame and feel smooth even if physics is running at a fixed tick rate
+
+/**
+ * @brief Per-frame update callback (variable timestep).
+ *
+ * Handles input and state that do not need to be synchronised with the physics
+ * step, allowing them to run every rendered frame for maximum responsiveness:
+ *
+ *  - **Orbit camera rotation**: when the right mouse button is held, yaw and
+ *    pitch are updated from mouse deltas. Pitch is clamped to [-20°, 80°] to
+ *    prevent the camera flipping over the top or clipping through the ground.
+ *  - **Camera position follow**: the camera is repositioned each frame to orbit
+ *    around a pivot point slightly above the player's feet (eye-level).
+ *
+ * Deliberate omission: movement is NOT handled here — it lives in
+ * onFixedUpdate() so it stays consistent with the physics simulation tick and
+ * does not vary with frame rate.
+ *
+ * @param dt Elapsed time since the last frame, in seconds.
+ */
 void PlayerController::onUpdate(float dt)
 {
     if (!camera || !owner) return;
@@ -62,6 +96,27 @@ void PlayerController::onUpdate(float dt)
 //  Handles: WASD movement, jumping
 //  Movement goes here (not onUpdate) so it stays consistent with
 //  the physics simulation step and doesn't vary with frame rate
+
+/**
+ * @brief Fixed-timestep update callback (physics tick, ~60 Hz).
+ *
+ * Handles all movement that must stay in sync with Bullet's simulation step:
+ *
+ *  - **WASD movement**: builds a movement direction in camera-relative XZ space
+ *    (the Y component is zeroed so looking up/down does not affect ground speed).
+ *    Diagonal inputs are normalised to prevent faster-than-intended movement.
+ *    Rather than setting velocity directly, a correction force is derived from
+ *    the delta between the target and current horizontal velocities, giving
+ *    responsive acceleration while still being physics-friendly.
+ *  - **Jumping**: a central impulse is applied when Space is pressed and
+ *    checkGrounded() confirms the player is on the ground. An impulse is used
+ *    (rather than a force) so the full jump energy is applied in a single tick.
+ *
+ * The rigid body is explicitly kept awake each tick to prevent Bullet from
+ * sleeping it mid-game.
+ *
+ * @param fixedDt The fixed physics timestep, in seconds (typically 1/60).
+ */
 void PlayerController::onFixedUpdate(float fixedDt)
 {
     if (!owner || !owner->hasPhysics()) return;
@@ -114,7 +169,11 @@ void PlayerController::onFixedUpdate(float fixedDt)
     }
 }
 
-
+/**
+ * @brief Lifecycle callback invoked when the script's owner is destroyed.
+ *
+ * Logs the destruction event. Override to add any cleanup logic.
+ */
 void PlayerController::onDestroy()
 {
     std::cout << "[PlayerController] Destroyed" << std::endl;
@@ -122,6 +181,18 @@ void PlayerController::onDestroy()
 
 // use physics query to check if player is grounded by raycasting down from their position
 // instead of relying on Bullet's contact points which can be unreliable and cause "sticky" feeling when trying to jump
+
+/**
+ * @brief Determines whether the player is currently standing on the ground.
+ *
+ * Casts a short ray downward from the player's world position using PhysicsQuery.
+ * A raycast is preferred over Bullet's contact point callbacks because contact
+ * points can be unreliable on curved/compound surfaces and may produce a
+ * "sticky" feeling when attempting to jump near geometry edges.
+ *
+ * @return true if the ray hits solid geometry within the capsule's ground margin.
+ *         Always returns false if physicsQuery or owner are null.
+ */
 bool PlayerController::checkGrounded() const
 {
     if (!physicsQuery || !owner) return false;

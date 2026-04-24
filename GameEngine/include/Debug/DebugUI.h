@@ -6,6 +6,12 @@
 // Reads engine state from DebugUIContext and issues debug commands.
 // Does not own rendering or engine systems.
 
+/**
+ * @brief Draws all editor UI panels each frame via ImGui.
+ *
+ * Reads engine state from DebugUIContext and issues commands through it.
+ * Does not own any engine systems.
+ */
 class DebugUI
 {
 public:

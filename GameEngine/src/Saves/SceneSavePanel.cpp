@@ -13,6 +13,19 @@
 /*Scenes are stored as JSON files in:
 ../../assets/scenes/ */
 
+/**
+ * @brief Draws the Scene Manager ImGui panel.
+ *
+ * Provides save, load, rename, delete, and new-scene operations for JSON scene
+ * files stored in ../../assets/scenes/. Most operations are disabled outside
+ * Editor mode. onClearSelections is fired before load and new-scene to avoid
+ * dangling pointers into the old scene.
+ *
+ * @param scene             Scene to save into or load from.
+ * @param engineMode        Disables most buttons outside EngineMode::Editor.
+ * @param light             Directional light whose state is saved and restored with the scene.
+ * @param onClearSelections Called before load/new-scene to clear inspector selections. May be nullptr.
+ */
 void DrawSceneSaveLoadPanel(Scene& scene, EngineMode engineMode, DirectionalLight& light, std::function<void()> onClearSelections)
 {
     // Buffer used when typing a name to SAVE a new scene

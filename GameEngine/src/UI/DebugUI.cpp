@@ -10,6 +10,15 @@
 #include "../External/imgui/core/imgui.h"
 #include "../External/imgui/core/imgui_internal.h"
 
+/**
+ * @brief Draws all editor UI panels for the current frame.
+ *
+ * Creates a full-screen dockspace, then draws the Stats panel and delegates
+ * to each sub-panel draw function. The default layout is built once on the
+ * first call and can be reset via the "Reset Layout" button in Stats.
+ *
+ * @param context Read-only engine state (timing, physics) passed through to all panels.
+ */
 void DebugUI::draw(DebugUIContext& context)
 {
     // ============================
@@ -81,6 +90,18 @@ void DebugUI::draw(DebugUIContext& context)
     DrawForceGeneratorPanel(context);
     DrawPointLightPanel(context);
 }
+
+/**
+ * @brief Builds the default dockspace layout.
+ *
+ * Splits the viewport into left sidebar (Inspector + Stats), right sidebar
+ * (Spawn + Model Importer), bottom strip (tool panels), and a passthrough
+ * central node for the 3D viewport. Called automatically on the first frame
+ * and whenever the user resets the layout.
+ *
+ * @param dockspaceID ID of the root dockspace node to build into.
+ * @param viewport    Main viewport, used to size the layout.
+ */
 void DebugUI::buildDefaultLayout(ImGuiID dockspaceID, ImGuiViewport* viewport)
 {
     ImGui::DockBuilderRemoveNode(dockspaceID);

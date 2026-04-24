@@ -2,6 +2,12 @@
 #include "../External/imgui/core/imgui.h"
 #include "../include/Core/GameTime.h"
 
+/**
+ * @brief Draws the Test Panel ImGui window.
+ *
+ * Displays delta time and FPS from GameTime. Shows a green PASS if FPS is
+ * within [59, 61], red FAIL otherwise.
+ */
 void TestUI::draw()
 {
     ImGuiIO& io = ImGui::GetIO();

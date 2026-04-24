@@ -5,6 +5,13 @@
 #include "../include/Physics/PhysicsQuery.h"
 #include <glm/glm.hpp>
 
+/**
+ * @brief Third-person player script. Handles orbit camera and physics-driven movement.
+ *
+ * Attach to a capsule GameObject with the "player" tag.
+ * Camera rotation runs in onUpdate(); movement and jumping run in onFixedUpdate()
+ * to stay in sync with the physics tick.
+ */
 class PlayerController : public ScriptComponent
 {
 public:

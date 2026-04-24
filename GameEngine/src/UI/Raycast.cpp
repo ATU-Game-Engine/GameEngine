@@ -16,6 +16,20 @@
 //
 // This uses the slab method, which checks intersection
 // against X, Y, and Z axis-aligned planes.
+
+/**
+ * @brief Tests whether a ray intersects an Axis-Aligned Bounding Box (AABB).
+ *
+ * Uses the slab method — intersects the ray against the X, Y, and Z axis-aligned
+ * plane pairs and checks whether a valid overlap exists across all three.
+ *
+ * @param rayOrigin   World-space ray origin.
+ * @param rayDir      Normalised world-space ray direction.
+ * @param aabbMin     Minimum corner of the AABB in world space.
+ * @param aabbMax     Maximum corner of the AABB in world space.
+ * @param outDistance Distance from the ray origin to the first intersection point.
+ * @return true if the ray hits the box, false otherwise.
+ */
 bool RayIntersectsAABB(
     const glm::vec3& rayOrigin,
     const glm::vec3& rayDir,

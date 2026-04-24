@@ -10,6 +10,13 @@
 #include "TriggerDebugCommands.h"  
 #include "Scene/GameObject.h"
 
+/**
+ * @brief Aggregates all read-only views and command interfaces passed to DebugUI each frame.
+ *
+ * Populated by the engine at the start of each frame and passed into DebugUI::draw().
+ * DebugUI reads state from the view structs and issues requests through the command structs.
+ * It does not own any of the systems these reference.
+ */
 struct DebugUIContext
 {
     TimeDebugView time;

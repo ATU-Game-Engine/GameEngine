@@ -17,6 +17,9 @@ float Time::fpsUpdateTimer = 0.0f;
 bool Time::fpsLimitEnabled = false;
 float Time::targetFrameTime = 0.0f;
 
+/**
+ * @brief Resets all time state. Must be called once before the main loop
+ */
 void Time::Initialize() {
     startTime = Clock::now();
     lastFrameTime = startTime;
@@ -27,6 +30,12 @@ void Time::Initialize() {
     fpsUpdateTimer = 0.0f;
 }
 
+/**
+ * @brief Updates delta time, total time, and FPS. Call once at the start of each frame
+ *
+ * Delta time is capped at 0.25s to prevent the physics accumulator spiralling
+ * if a frame takes unusually long. FPS is recalculated once per second
+ */
 void Time::Update() {
     //Calculate time since last frame
     //get current time
@@ -68,7 +77,13 @@ void Time::Update() {
     lastFrameTime = currentTime;
 }
 
-
+/**
+ * @brief Sets the target frame rate and enables the frame limiter
+ *
+ * Pass 0 or a negative value to disable limiting and run uncapped
+ *
+ * @param targetFPS Desired frames per second
+ */
 void Time::SetTargetFPS(float targetFPS) {
     if (targetFPS > 0.0f) {
         //convert fps to frame time
@@ -82,6 +97,13 @@ void Time::SetTargetFPS(float targetFPS) {
     }
 }
 
+/**
+ * @brief Blocks until the current frame has met its target duration.
+ *
+ * Sleeps for most of the remaining time then spin-locks for the final
+ * millisecond to achieve precise timing. Does nothing if the limiter
+ * is disabled or the frame already ran long
+ */
 void Time::WaitForNextFrame() {
     //check if  fps limit is on to decide if next frame should wait or not
     if (!fpsLimitEnabled)

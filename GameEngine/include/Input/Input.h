@@ -3,6 +3,12 @@
 
 class CameraController;
 
+/**
+ * @brief Static input system. Tracks keyboard and mouse state via GLFW callbacks.
+ *
+ * Call Initialize() once after window creation, then BeginFrame() at the
+ * start of each frame before reading any input state.
+ */
 namespace Input
 {
     // Must be called once after window creation.
@@ -28,5 +34,6 @@ namespace Input
 
     // Sets the active camera controller to receive mouse movement.
     // Used for editor orbit / free-look camera control
+    /// @brief Registers a CameraController to receive forwarded mouse-move events
     void SetCameraController(CameraController* controller);
 }

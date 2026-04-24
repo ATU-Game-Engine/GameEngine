@@ -10,10 +10,15 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include "../include/Rendering/PointLight.h"
 
-// Constructor
+/** @brief Default constructor. Initialises EditorGizmo with no active state. */
 EditorGizmo::EditorGizmo() {}
 
-// Returns the unit direction for each world axis
+/**
+ * @brief Returns the unit direction vector for a given world axis.
+ *
+ * @param a The axis to query (X, Y, or Z).
+ * @return glm::vec3 Unit vector along the given axis, or zero vector for Axis::None.
+ */
 glm::vec3 EditorGizmo::axisDir(Axis a)
 {
     switch (a)
@@ -31,7 +36,25 @@ glm::vec3 EditorGizmo::axisDir(Axis a)
 // NDC = clip.xyz / clip.w
 // screen.x = (ndc.x * 0.5 + 0.5) * width
 // screen.y = (1 - (ndc.y * 0.5 + 0.5)) * height
-// Returns false if clip.w <= 0 (behind camera).
+// Returns false if clip.w <= 0 (behind camera)
+
+/**
+ * @brief Projects a world-space position into screen-space pixel coordinates.
+ *
+ * Applies the full MVP transform:
+ *   clip  = proj * view * world
+ *   NDC   = clip.xyz / clip.w
+ *   px.x  = (ndc.x * 0.5 + 0.5) * fbW
+ *   px.y  = (1 - (ndc.y * 0.5 + 0.5)) * fbH
+ *
+ * @param world    World-space position to project.
+ * @param view     Camera view matrix.
+ * @param proj     Camera projection matrix.
+ * @param fbW      Framebuffer width in pixels.
+ * @param fbH      Framebuffer height in pixels.
+ * @param outScreen Output screen-space pixel coordinate.
+ * @return true if the point is in front of the camera (clip.w > 0), false otherwise.
+ */
 bool EditorGizmo::worldToScreen(const glm::vec3& world,
     const glm::mat4& view,
     const glm::mat4& proj,
@@ -54,6 +77,18 @@ bool EditorGizmo::worldToScreen(const glm::vec3& world,
 
 // Distance from point P to segment AB in 2D.
 // Used so that axis lines are clickable with a tolerance in pixels.
+
+/**
+ * @brief Computes the minimum 2D distance from a point to a line segment.
+ *
+ * Used to determine whether the mouse cursor is close enough to an axis
+ * line to register as a hover/click, with a configurable pixel tolerance.
+ *
+ * @param p Point to test (e.g., mouse cursor position in screen pixels).
+ * @param a Start of the line segment.
+ * @param b End of the line segment.
+ * @return float Shortest distance from p to the segment AB.
+ */
 float EditorGizmo::distancePointToSegment2D(const glm::vec2& p,
     const glm::vec2& a,
     const glm::vec2& b)
@@ -78,6 +113,25 @@ float EditorGizmo::distancePointToSegment2D(const glm::vec2& p,
 // mouse pixels -> NDC -> eye -> world direction
 // outOrigin = camera position
 // outDir    = normalized world direction
+
+/**
+ * @brief Constructs a world-space ray from the current mouse cursor position.
+ *
+ * Converts the mouse pixel position through NDC and eye space back into
+ * a world-space ray origin (camera position) and normalised direction.
+ *
+ *   NDC  = mouse pixels -> [-1, 1]
+ *   eye  = inverse(proj) * NDC clip point
+ *   dir  = normalise(inverse(view) * eye direction)
+ *
+ * @param window    Active GLFW window (used to query cursor position).
+ * @param fbW       Framebuffer width in pixels.
+ * @param fbH       Framebuffer height in pixels.
+ * @param camera    Active scene camera.
+ * @param outOrigin Output ray origin (camera world position).
+ * @param outDir    Output normalised ray direction in world space.
+ * @return true always (reserved for future failure cases).
+ */
 bool EditorGizmo::buildMouseRay(GLFWwindow* window,
     int fbW, int fbH,
     const Camera& camera,
@@ -119,6 +173,23 @@ bool EditorGizmo::buildMouseRay(GLFWwindow* window,
 // t = dot((planePoint - ro), planeNormal) / dot(rd, planeNormal)
 //
 // If denom is 0 => ray parallel to plane.
+
+/**
+ * @brief Computes the intersection point of a ray with an infinite plane.
+ *
+ * Solves:  dot((P - planePoint), planeNormal) = 0
+ *          P = ro + t * rd
+ *
+ * Substituting and rearranging:
+ *   t = dot(planePoint - ro, planeNormal) / dot(rd, planeNormal)
+ *
+ * @param ro         Ray origin in world space.
+ * @param rd         Normalised ray direction in world space.
+ * @param planePoint Any point on the plane.
+ * @param planeNormal Normal vector of the plane (need not be unit length).
+ * @param outHit     Output intersection point if the ray hits the plane.
+ * @return true if an intersection exists (ray not parallel to plane and hit is in front of origin).
+ */
 bool EditorGizmo::rayPlaneIntersection(const glm::vec3& ro,
     const glm::vec3& rd,
     const glm::vec3& planePoint,
@@ -145,6 +216,27 @@ bool EditorGizmo::rayPlaneIntersection(const glm::vec3& ro,
 // - click on axis starts drag
 // - while dragging: compute new hit point on drag plane,
 //   project delta onto axis, and set object position.
+
+/**
+ * @brief Processes per-frame gizmo interaction for a selected GameObject.
+ *
+ * Handles the full gizmo lifecycle each frame:
+ *  - Hover detection: projects axis line segments to screen and tests mouse proximity.
+ *  - Drag start: on click, selects the hot axis and constructs a stable drag plane whose
+ *    normal is chosen by finding the camera vector most perpendicular to the active axis.
+ *  - Drag update: casts a ray to the drag plane each frame, projects the world-space delta
+ *    onto the active axis, and updates the object's position accordingly.
+ *  - Drag end: releases state when the mouse button is released.
+ *
+ * @param window         Active GLFW window.
+ * @param fbW            Framebuffer width in pixels.
+ * @param fbH            Framebuffer height in pixels.
+ * @param camera         Active scene camera.
+ * @param selectedObject The GameObject to be moved.
+ * @param editorMode     Whether the editor is in edit mode; gizmo is inactive otherwise.
+ * @param uiWantsMouse   True if ImGui is consuming mouse input; prevents drag start.
+ * @return true if the gizmo is actively consuming mouse input (dragging or just started drag).
+ */
 bool EditorGizmo::update(GLFWwindow* window,
     int fbW, int fbH,
     const Camera& camera,
@@ -375,6 +467,20 @@ bool EditorGizmo::update(GLFWwindow* window,
 // draw():
 // Renders axis lines as overlay using ImGui foreground draw list.
 // This avoids needing any OpenGL rendering changes.
+
+/**
+ * @brief Renders the translation gizmo for a selected GameObject as an ImGui overlay.
+ *
+ * Draws three colour-coded axis lines (X = red, Y = green, Z = blue) and a centre dot
+ * using ImGui's background draw list so no OpenGL state changes are required.
+ * Hovered and active axes are tinted yellow to provide visual feedback.
+ * Axis length is scaled by camera distance to maintain a consistent on-screen size.
+ *
+ * @param fbW            Framebuffer width in pixels.
+ * @param fbH            Framebuffer height in pixels.
+ * @param camera         Active scene camera.
+ * @param selectedObject The GameObject whose gizmo should be drawn.
+ */
 void EditorGizmo::draw(int fbW, int fbH, const Camera& camera, GameObject* selectedObject)
 {
     if (!selectedObject) return;
@@ -431,6 +537,23 @@ void EditorGizmo::draw(int fbW, int fbH, const Camera& camera, GameObject* selec
 
 // Same logic as GameObject gizmo but operates on Trigger instead.
 // We duplicate instead of abstracting to avoid modifying existing systems.
+
+/**
+ * @brief Processes per-frame gizmo interaction for a selected Trigger.
+ *
+ * Identical drag-plane interaction logic to the GameObject overload, but
+ * operates on a Trigger object. Kept as a separate overload rather than a
+ * template to avoid modifying existing engine systems.
+ *
+ * @param window          Active GLFW window.
+ * @param fbW             Framebuffer width in pixels.
+ * @param fbH             Framebuffer height in pixels.
+ * @param camera          Active scene camera.
+ * @param selectedTrigger The Trigger to be moved.
+ * @param editorMode      Whether the editor is in edit mode.
+ * @param uiWantsMouse    True if ImGui is consuming mouse input.
+ * @return true if the gizmo is actively consuming mouse input.
+ */
 bool EditorGizmo::update(GLFWwindow* window,
     int fbW, int fbH,
     const Camera& camera,
@@ -599,6 +722,19 @@ bool EditorGizmo::update(GLFWwindow* window,
 }
 
 // Draw gizmo for trigger using same visual logic as GameObject
+
+/**
+ * @brief Renders the translation gizmo for a selected Trigger as an ImGui overlay.
+ *
+ * Uses the same visual style as the GameObject overload (colour-coded axis lines,
+ * yellow hover/active highlight, centre dot). Kept separate to avoid modifying
+ * existing engine systems.
+ *
+ * @param fbW             Framebuffer width in pixels.
+ * @param fbH             Framebuffer height in pixels.
+ * @param camera          Active scene camera.
+ * @param selectedTrigger The Trigger whose gizmo should be drawn.
+ */
 void EditorGizmo::draw(int fbW, int fbH, const Camera& camera, Trigger* selectedTrigger)
 {
     if (!selectedTrigger) return;
@@ -646,10 +782,27 @@ void EditorGizmo::draw(int fbW, int fbH, const Camera& camera, Trigger* selected
 }
 
 // =======================================================
-// FORCE GENERATOR GIZMO (COPY OF TRIGGER VERSION)
+// FORCE GENERATOR GIZMO
 // =======================================================
 
 // Same logic as Trigger gizmo but operates on ForceGenerator instead.
+
+/**
+ * @brief Processes per-frame gizmo interaction for a selected ForceGenerator.
+ *
+ * Identical drag-plane interaction logic to the Trigger overload, but
+ * operates on a ForceGenerator object. Kept as a separate overload rather
+ * than a template to avoid modifying existing engine systems.
+ *
+ * @param window                 Active GLFW window.
+ * @param fbW                    Framebuffer width in pixels.
+ * @param fbH                    Framebuffer height in pixels.
+ * @param camera                 Active scene camera.
+ * @param selectedForceGenerator The ForceGenerator to be moved.
+ * @param editorMode             Whether the editor is in edit mode.
+ * @param uiWantsMouse           True if ImGui is consuming mouse input.
+ * @return true if the gizmo is actively consuming mouse input.
+ */
 bool EditorGizmo::update(GLFWwindow* window,
     int fbW, int fbH,
     const Camera& camera,
@@ -807,6 +960,18 @@ bool EditorGizmo::update(GLFWwindow* window,
 
 
 // Draw gizmo for ForceGenerator
+
+/**
+ * @brief Renders the translation gizmo for a selected ForceGenerator as an ImGui overlay.
+ *
+ * Uses the same visual style as the other object gizmo overloads (colour-coded
+ * axis lines, yellow hover/active highlight, centre dot).
+ *
+ * @param fbW                    Framebuffer width in pixels.
+ * @param fbH                    Framebuffer height in pixels.
+ * @param camera                 Active scene camera.
+ * @param selectedForceGenerator The ForceGenerator whose gizmo should be drawn.
+ */
 void EditorGizmo::draw(int fbW, int fbH, const Camera& camera, ForceGenerator* selectedForceGenerator)
 {
     if (!selectedForceGenerator) return;
@@ -854,8 +1019,29 @@ void EditorGizmo::draw(int fbW, int fbH, const Camera& camera, ForceGenerator* s
 
 // Fixed sky position where the gizmo lives
 static const glm::vec3 LIGHT_GIZMO_ORIGIN = glm::vec3(0.0f, 15.0f, 0.0f);
+// Distance from the gizmo origin to the draggable direction handle in world units.
 static const float LIGHT_GIZMO_HANDLE_DIST = 5.0f;
 
+/**
+ * @brief Processes per-frame gizmo interaction for a DirectionalLight.
+ *
+ * Unlike the translation gizmos, this gizmo adjusts the light's direction rather
+ * than a position. A single draggable handle sits at a fixed sky-space origin offset
+ * by the current light direction. Dragging the handle updates the light direction to
+ * point from the fixed gizmo origin toward the new handle position.
+ *
+ * The drag plane always faces the camera (normal = -cameraFront), which keeps
+ * movement intuitive regardless of the current view angle.
+ *
+ * @param window       Active GLFW window.
+ * @param fbW          Framebuffer width in pixels.
+ * @param fbH          Framebuffer height in pixels.
+ * @param camera       Active scene camera.
+ * @param light        The DirectionalLight whose direction should be edited.
+ * @param editorMode   Whether the editor is in edit mode.
+ * @param uiWantsMouse True if ImGui is consuming mouse input.
+ * @return true if the gizmo is actively consuming mouse input.
+ */
 bool EditorGizmo::update(GLFWwindow* window,
     int fbW, int fbH,
     const Camera& camera,
@@ -949,6 +1135,18 @@ bool EditorGizmo::update(GLFWwindow* window,
     return false;
 }
 
+/**
+ * @brief Renders the direction gizmo for a DirectionalLight as an ImGui overlay.
+ *
+ * Draws a yellow arrow line from a fixed sky-space origin to a draggable circular
+ * handle positioned along the light's current direction. A "SUN" text label is
+ * drawn beside the handle for clarity. The handle brightens when being dragged.
+ *
+ * @param fbW    Framebuffer width in pixels.
+ * @param fbH    Framebuffer height in pixels.
+ * @param camera Active scene camera.
+ * @param light  The DirectionalLight whose gizmo should be drawn.
+ */
 void EditorGizmo::draw(int fbW, int fbH, const Camera& camera, DirectionalLight* light)
 {
     if (!light) return;
@@ -982,7 +1180,21 @@ void EditorGizmo::draw(int fbW, int fbH, const Camera& camera, DirectionalLight*
     dl->AddText(ImVec2(handleS.x + 10.0f, handleS.y - 8.0f), IM_COL32(255, 220, 50, 255), "SUN");
 }
 
-
+/**
+ * @brief Processes per-frame gizmo interaction for a selected PointLight.
+ *
+ * Uses the same axis-constrained drag-plane approach as the GameObject and
+ * Trigger overloads, but moves the PointLight's world position instead.
+ *
+ * @param window       Active GLFW window.
+ * @param fbW          Framebuffer width in pixels.
+ * @param fbH          Framebuffer height in pixels.
+ * @param camera       Active scene camera.
+ * @param light        The PointLight to be moved.
+ * @param editorMode   Whether the editor is in edit mode.
+ * @param uiWantsMouse True if ImGui is consuming mouse input.
+ * @return true if the gizmo is actively consuming mouse input.
+ */
 bool EditorGizmo::update(GLFWwindow* window,
     int fbW, int fbH,
     const Camera& camera,
@@ -1116,6 +1328,18 @@ bool EditorGizmo::update(GLFWwindow* window,
     return false;
 }
 
+/**
+ * @brief Renders the translation gizmo for a selected PointLight as an ImGui overlay.
+ *
+ * Draws the same colour-coded axis lines as the other object gizmos, but
+ * replaces the plain centre dot with a filled circle coloured to match the
+ * light's RGB colour, making it easy to identify the light source at a glance.
+ *
+ * @param fbW    Framebuffer width in pixels.
+ * @param fbH    Framebuffer height in pixels.
+ * @param camera Active scene camera.
+ * @param light  The PointLight whose gizmo should be drawn.
+ */
 void EditorGizmo::draw(int fbW, int fbH, const Camera& camera, PointLight* light)
 {
     if (!light) return;

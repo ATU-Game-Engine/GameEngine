@@ -5,6 +5,12 @@
 
 
 //Time management class for tracking frame time, delta time, and FPS
+/**
+ * @brief Static time management utility for tracking delta time, total time, and FPS.
+ *
+ * Call Initialize() once at startup, Update() at the start of each frame,
+ * and WaitForNextFrame() at the end if FPS limiting is enabled.
+ */
 class Time {
 private:
     using Clock = std::chrono::high_resolution_clock; //High-precision timer

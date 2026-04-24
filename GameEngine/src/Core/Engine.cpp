@@ -34,6 +34,10 @@
 #include "../include/Physics/PhysicsQuery.h"
 #include <filesystem>
 
+/**
+ * @brief Placeholder simulation tick. Currently unused.
+ * @param dt Elapsed time in seconds to advance the simulation by
+ */
 void simulate(double dt)
 {
     static double totalTime = 0.0;
@@ -47,6 +51,15 @@ void simulate(double dt)
     }
 }
 
+/**
+ * @brief Initialises all engine systems and runs the main loop.
+ *
+ * Sets up GLFW, OpenGL, ImGui, input, physics, scene, camera, and all
+ * editor systems, then loops until the window is closed. Each frame handles
+ * input, fixed-timestep physics, gizmo interaction, editor ray picking,
+ * UI drawing, rendering, and frame limiting. Returns 0 on clean exit, -1
+ * if GLFW or GLEW initialisation fails
+ */
 int Start(void)
 {
     GLFWwindow* window;
