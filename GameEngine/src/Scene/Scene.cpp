@@ -1085,6 +1085,17 @@ bool Scene::loadFromFile(const std::string& path)
             if (!modelPath.empty())
             {
                 obj = loadAndSpawnModel(modelPath, position, scale, true, mass, physScale, material);
+                if (obj && !texture.empty())
+                    obj->getRender().setTexturePath(texture);
+                if (obj && !normal.empty())
+                    obj->getRender().setNormalTexturePath(normal);
+                if (obj && !specular.empty())
+                    obj->getRender().setSpecularTexturePath(specular);
+                if (obj && obj->hasPhysics())
+                {
+                    obj->setPosition(position);
+                    obj->getPhysics()->syncFromTransform(obj->getTransform());
+                }
             }
             else
             {
@@ -1102,6 +1113,12 @@ bool Scene::loadFromFile(const std::string& path)
             if (!modelPath.empty())
             {
                 obj = loadAndSpawnModel(modelPath, position, scale, false, 0.0f, glm::vec3(1.0f), "Default");
+                if (obj && !texture.empty())
+                    obj->getRender().setTexturePath(texture);
+                if (obj && !normal.empty())
+                    obj->getRender().setNormalTexturePath(normal);
+                if (obj && !specular.empty())
+                    obj->getRender().setSpecularTexturePath(specular);
             }
             else
             {

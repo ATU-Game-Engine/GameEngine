@@ -2,7 +2,7 @@
     "constraints": [
         {
             "bodyA_ID": 14,
-            "bodyB_ID": 33,
+            "bodyB_ID": 34,
             "breakForce": null,
             "breakTorque": null,
             "breakable": false,
@@ -21,9 +21,9 @@
             },
             "frameInB": {
                 "origin": [
-                    1.3455696105957031,
-                    0.38868236541748047,
-                    -0.002360820770263672
+                    -1.620091438293457,
+                    -0.06002235412597656,
+                    -0.3916759490966797
                 ],
                 "rotation": [
                     -0.7071067690849304,
@@ -33,11 +33,11 @@
                 ]
             },
             "hinge": {
-                "lowerLimit": -1.5707963705062866,
+                "lowerLimit": 0.0,
                 "motorMaxImpulse": 0.0,
                 "motorTargetVelocity": 0.0,
-                "upperLimit": 2.094395160675049,
-                "useLimits": true,
+                "upperLimit": 0.0,
+                "useLimits": false,
                 "useMotor": false
             },
             "name": "",
@@ -125,15 +125,15 @@
             ],
             "transform": {
                 "position": [
-                    -16.679508209228516,
-                    0.8999992609024048,
-                    16.72229766845703
+                    -6.659923076629639,
+                    0.44999992847442627,
+                    17.73769187927246
                 ],
                 "rotation": [
-                    0.754996120929718,
-                    8.46174430080282e-07,
-                    0.6557292938232422,
-                    -5.784285121990251e-07
+                    -0.6531252861022949,
+                    0.27097463607788086,
+                    0.2709748148918152,
+                    0.6531253457069397
                 ],
                 "scale": [
                     1.0,
@@ -525,7 +525,7 @@
             "tags": [],
             "transform": {
                 "position": [
-                    -3.0,
+                    -2.486948013305664,
                     2.0,
                     3.0
                 ],
@@ -1004,7 +1004,7 @@
             "transform": {
                 "position": [
                     -382.2080993652344,
-                    -974275.75,
+                    -1945393.75,
                     17.95427894592285
                 ],
                 "rotation": [
@@ -1181,42 +1181,42 @@
             }
         },
         {
-            "id": 33,
-            "name": "Cube_33",
+            "id": 34,
+            "name": "",
             "physics": {
                 "enabled": true,
-                "mass": 10.0,
-                "material": "Concrete",
+                "mass": 1.0,
+                "material": "Default",
                 "physicsScale": [
-                    1.0,
-                    1.0,
-                    1.0
+                    1.100000023841858,
+                    2.0,
+                    0.20000000298023224
                 ]
             },
             "render": {
-                "modelPath": "",
+                "modelPath": "models\\door.obj",
                 "normal": "",
                 "specular": "",
-                "texture": ""
+                "texture": "textures\\wood1.jpg"
             },
             "shape": 0,
             "tags": [],
             "transform": {
                 "position": [
-                    -13.345569610595703,
-                    1.6113176345825195,
-                    3.0023608207702637
+                    -13.13762092590332,
+                    2.0600228309631348,
+                    2.768946409225464
                 ],
                 "rotation": [
-                    0.0,
-                    0.0,
-                    0.0,
-                    1.0
+                    -2.802596928649634e-45,
+                    0.9987963438034058,
+                    2.802596928649634e-45,
+                    -0.04904942587018013
                 ],
                 "scale": [
-                    1.5,
                     2.0,
-                    1.0
+                    2.0,
+                    2.0
                 ]
             }
         }
@@ -1233,7 +1233,7 @@
                 0.0
             ],
             "forceMagnitude": 400.0,
-            "id": 4,
+            "id": 1,
             "maxUses": -1,
             "name": "Trigger_1",
             "position": [
@@ -1255,7 +1255,7 @@
             "behaviourTag": "sphere_spawner",
             "debugVisualize": true,
             "enabled": true,
-            "id": 5,
+            "id": 2,
             "maxUses": 1,
             "name": "Sphere_Spawner",
             "position": [
@@ -1277,7 +1277,7 @@
             "behaviourTag": "",
             "debugVisualize": true,
             "enabled": true,
-            "id": 6,
+            "id": 3,
             "maxUses": -1,
             "name": "Teleporter",
             "position": [
