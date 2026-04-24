@@ -1,5 +1,6 @@
 ﻿#include "../include/Gameplay/GameScene.h"
 #include "../include/Gameplay/PlayerController.h"
+#include "../include/Gameplay/EnemyAI.h"
 #include "../include/Scene/Scene.h"
 #include "../include/Rendering/Camera.h"
 #include "../include/Physics/Physics.h"
@@ -97,7 +98,13 @@ void SetupScripts(Scene& scene, Camera& camera, Physics& physics)
                 });
         }
     );
-    
+
+    scene.registerTagScript("enemy",
+        [&scene](GameObject* obj) {
+            obj->addScript<EnemyAI>(&scene, 15.0f, 4.0f, 1.5f, 1.0f);
+        },
+        [](GameObject* obj) { obj->removeScript<EnemyAI>(); }
+    );
     // One-time pass to attach scripts to any objects that were loaded
     // from file and already had tags set before registerTagScript() was called.
     // Must be called AFTER all registerTagScript() calls above.

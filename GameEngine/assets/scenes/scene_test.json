@@ -52,9 +52,9 @@
             0.8999999761581421
         ],
         "direction": [
-            0.0,
-            -1.0,
-            0.0
+            0.2758665978908539,
+            -0.6394626498222351,
+            -0.7176247239112854
         ],
         "intensity": 1.0
     },
@@ -1210,13 +1210,139 @@
                 "rotation": [
                     3.1606259276451e-10,
                     -0.7130835056304932,
-                    2.271308002788075e-10,
+                    2.271307864010197e-10,
                     0.7010791301727295
                 ],
                 "scale": [
                     2.0,
                     2.0,
                     2.0
+                ]
+            }
+        },
+        {
+            "id": 35,
+            "name": "Cube_35",
+            "physics": {
+                "enabled": true,
+                "mass": 1.0,
+                "material": "Concrete",
+                "physicsScale": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "render": {
+                "modelPath": "",
+                "normal": "",
+                "specular": "",
+                "texture": ""
+            },
+            "shape": 0,
+            "tags": [
+                "enemy"
+            ],
+            "transform": {
+                "position": [
+                    -16.30870819091797,
+                    6.228935241699219,
+                    -6.77132511138916
+                ],
+                "rotation": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0
+                ],
+                "scale": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
+        },
+        {
+            "id": 36,
+            "name": "Cube_36",
+            "physics": {
+                "enabled": true,
+                "mass": 1.0,
+                "material": "Concrete",
+                "physicsScale": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "render": {
+                "modelPath": "",
+                "normal": "",
+                "specular": "",
+                "texture": ""
+            },
+            "shape": 0,
+            "tags": [
+                "enemy"
+            ],
+            "transform": {
+                "position": [
+                    0.0,
+                    5.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0
+                ],
+                "scale": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
+        },
+        {
+            "id": 37,
+            "name": "Cube_37",
+            "physics": {
+                "enabled": true,
+                "mass": 1.0,
+                "material": "Concrete",
+                "physicsScale": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "render": {
+                "modelPath": "",
+                "normal": "",
+                "specular": "",
+                "texture": ""
+            },
+            "shape": 0,
+            "tags": [
+                "enemy"
+            ],
+            "transform": {
+                "position": [
+                    0.0,
+                    5.0,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0
+                ],
+                "scale": [
+                    1.0,
+                    1.0,
+                    1.0
                 ]
             }
         }
