@@ -14,8 +14,25 @@
 #define M_PI 3.14159265358979323846
 #endif
 
-// ADD THIS ENTIRE FUNCTION HERE:
-// Helper function to calculate tangent and bitangent vectors
+/**
+ * @brief Calculates the tangent and bitangent vectors for a single triangle.
+ *
+ * Used during mesh construction to populate the TBN matrix data required
+ * by the normal mapping pipeline in the fragment shader.
+ *
+ * The tangent aligns with the texture U axis and the bitangent with the V axis.
+ * Both are derived from the relationship between the triangle's edge vectors
+ * and the corresponding UV deltas.
+ *
+ * @param pos1      World-space position of vertex 0.
+ * @param pos2      World-space position of vertex 1.
+ * @param pos3      World-space position of vertex 2.
+ * @param uv1       Texture coordinate of vertex 0.
+ * @param uv2       Texture coordinate of vertex 1.
+ * @param uv3       Texture coordinate of vertex 2.
+ * @param tangent   Output normalised tangent vector (U axis direction).
+ * @param bitangent Output normalised bitangent vector (V axis direction).
+ */
 static void calculateTangentBitangent(
     const glm::vec3& pos1, const glm::vec3& pos2, const glm::vec3& pos3,
     const glm::vec2& uv1, const glm::vec2& uv2, const glm::vec2& uv3,
@@ -39,7 +56,20 @@ static void calculateTangentBitangent(
     bitangent = glm::normalize(bitangent);
 }
 
-
+/**
+ * @brief Creates a unit cube mesh centred at the origin.
+ *
+ * Each face has its own set of four vertices so per-face normals, tangents
+ * and bitangents are correct. The cube spans [-0.5, 0.5] on all axes.
+ *
+ * Vertex format (14 floats per vertex):
+ *   Position(3) | Normal(3) | TexCoord(2) | Tangent(3) | Bitangent(3)
+ *
+ * Tangent and bitangent are analytically correct for each face orientation,
+ * matching the UV layout so normal mapping works without artefacts.
+ *
+ * @return Mesh A fully initialised cube mesh with GPU buffers ready to draw.
+ */
 Mesh MeshFactory::createCube() {
     // Format: pos(3) + normal(3) + uv(2) + tangent(3) + bitangent(3) = 14 floats
     std::vector<float> vertices = {
@@ -94,6 +124,23 @@ Mesh MeshFactory::createCube() {
     return mesh;
 }
 
+/**
+ * @brief Creates a UV sphere mesh centred at the origin.
+ *
+ * Vertices are generated using spherical coordinates, iterating over
+ * latitude stacks and longitude sectors. Normals are the normalised
+ * position vectors. Tangents are approximated as the horizontal
+ * perpendicular to the sector angle, which is sufficient for most
+ * sphere shading use cases.
+ *
+ * Degenerate triangles at the poles are skipped — the top stack
+ * omits upper triangles and the bottom stack omits lower triangles.
+ *
+ * @param radius  Sphere radius. Default 0.5 gives a unit-diameter sphere.
+ * @param sectors Number of longitude divisions. Higher = smoother.
+ * @param stacks  Number of latitude divisions. Higher = smoother.
+ * @return Mesh A fully initialised sphere mesh with GPU buffers ready to draw.
+ */
 Mesh MeshFactory::createSphere(float radius, int sectors, int stacks) {
     std::vector<float> vertices;
     std::vector<unsigned int> indices;
@@ -127,7 +174,7 @@ Mesh MeshFactory::createSphere(float radius, int sectors, int stacks) {
             vertices.push_back(s);
             vertices.push_back(t);
 
-            // Tangent (approximate - good enough for spheres)
+            // Tangent
             glm::vec3 tangent = glm::normalize(glm::vec3(-sinf(sectorAngle), cosf(sectorAngle), 0.0f));
             vertices.push_back(tangent.x);
             vertices.push_back(tangent.y);
@@ -165,6 +212,23 @@ Mesh MeshFactory::createSphere(float radius, int sectors, int stacks) {
     return mesh;
 }
 
+/**
+ * @brief Creates a cylinder mesh centred at the origin with closed top and bottom caps.
+ *
+ * The mesh is built in three parts:
+ *   1. Side walls — two rings of vertices (bottom and top) connected by quads.
+ *   2. Bottom cap — a fan of triangles from a centre vertex to the bottom rim.
+ *   3. Top cap    — a fan of triangles from a centre vertex to the top rim.
+ *
+ * Side normals point radially outward. Cap normals point along the negative
+ * and positive Y axes respectively. Tangents on the sides are tangential to
+ * the cylinder circumference; bitangents point upward along the Y axis.
+ *
+ * @param radius  Cylinder radius. Default 0.5.
+ * @param height  Total cylinder height. Default 1.0.
+ * @param sectors Number of circumferential divisions. Higher = smoother.
+ * @return Mesh A fully initialised cylinder mesh with GPU buffers ready to draw.
+ */
 Mesh MeshFactory::createCylinder(float radius, float height, int sectors) {
     std::vector<float> vertices;
     std::vector<unsigned int> indices;
@@ -309,6 +373,26 @@ Mesh MeshFactory::createCylinder(float radius, float height, int sectors) {
     return mesh;
 }
 
+/**
+ * @brief Loads a triangle mesh from a Wavefront .obj file using tinyobjloader.
+ *
+ * Only triangulated faces are processed — any face with a vertex count other
+ * than 3 is skipped. If the file contains no normals for a vertex, a default
+ * upward normal (0, 1, 0) is used. Missing UV coordinates default to (0, 0).
+ *
+ * Tangent and bitangent vectors are calculated per triangle using
+ * calculateTangentBitangent() and assigned to all three vertices of each
+ * face. The final vertex data is written in the standard 14-float interleaved
+ * format expected by Mesh::setData().
+ *
+ * After loading, the mesh is normalised to unit scale: the largest dimension
+ * is scaled to 2 units and the mesh is centred at the origin. This ensures
+ * consistent behaviour regardless of the original model's coordinate scale.
+ *
+ * @param filepath Path to the .obj file. The associated .mtl file (if any)
+ *                 must be in the same directory.
+ * @return Mesh A fully initialised mesh. Returns an empty Mesh if loading fails.
+ */
 Mesh MeshFactory::loadFromFile(const std::string& filepath) {
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;

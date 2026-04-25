@@ -5,13 +5,32 @@
 #include <sstream>
 #include <glm/gtc/type_ptr.hpp>
 
+/**
+ * @brief Default constructor. Initialises all handles to zero.
+ *
+ * No GPU resources are allocated until loadCubemap() is called.
+ */
 Skybox::Skybox() : VAO(0), VBO(0), shaderProgram(0) {
 }
 
+/**
+ * @brief Destructor. Releases all GPU resources held by the skybox.
+ */
 Skybox::~Skybox() {
     cleanup();
 }
 
+/**
+ * @brief Creates the VAO and VBO for the skybox cube geometry.
+ *
+ * The skybox is rendered as a unit cube using position-only vertices (3 floats
+ * each, no normals or UVs). The cube has 36 vertices (6 faces × 2 triangles
+ * × 3 vertices) laid out as non-indexed triangle lists.
+ *
+ * The cube is centred at the origin and spans [-1, 1] on all axes. Because
+ * translation is stripped from the view matrix before rendering, the cube
+ * appears to surround the camera at infinite distance regardless of position.
+ */
 void Skybox::setupMesh() {
     // Skybox cube vertices (positions only, no normals/UVs needed)
     float skyboxVertices[] = {
@@ -73,6 +92,12 @@ void Skybox::setupMesh() {
     glBindVertexArray(0);
 }
 
+/**
+ * @brief Reads a GLSL shader source file from disk into a string.
+ *
+ * @param filepath Path to the shader file.
+ * @return std::string The shader source, or empty string on failure.
+ */
 std::string Skybox::loadShaderSource(const std::string& filepath) {
     std::ifstream file(filepath);
     if (!file.is_open()) {
@@ -84,6 +109,16 @@ std::string Skybox::loadShaderSource(const std::string& filepath) {
     return buffer.str();
 }
 
+/**
+ * @brief Compiles a single GLSL shader stage from source.
+ *
+ * Compilation errors are printed to stdout but do not throw. The caller
+ * should check for link errors at the program stage.
+ *
+ * @param type   GL_VERTEX_SHADER or GL_FRAGMENT_SHADER.
+ * @param source Null-terminated GLSL source string.
+ * @return unsigned int OpenGL shader object ID.
+ */
 unsigned int Skybox::compileShader(unsigned int type, const char* source) {
     unsigned int shader = glCreateShader(type);
     glShaderSource(shader, 1, &source, NULL);
@@ -99,6 +134,14 @@ unsigned int Skybox::compileShader(unsigned int type, const char* source) {
     return shader;
 }
 
+/**
+ * @brief Loads and links the skybox vertex and fragment shaders.
+ *
+ * Reads shaders/skybox.vert and shaders/skybox.frag, compiles them and
+ * links them into a program stored in shaderProgram. The individual shader
+ * objects are deleted after linking. Returns early if either source file
+ * fails to load.
+ */
 void Skybox::setupShaders() {
     std::string vertexSource = loadShaderSource("shaders/skybox.vert");
     std::string fragmentSource = loadShaderSource("shaders/skybox.frag");
@@ -131,6 +174,16 @@ void Skybox::setupShaders() {
     glDeleteShader(fragment);
 }
 
+/**
+ * @brief Loads the six cubemap face images and prepares the skybox for rendering.
+ *
+ * Delegates image loading to Cubemap::loadFromFiles(), then calls setupMesh()
+ * and setupShaders() to create the GPU geometry and shader program.
+ *
+ * @param faces Six image file paths in the order: +X, -X, +Y, -Y, +Z, -Z.
+ * @return true  if the cubemap loaded successfully.
+ * @return false if any face image failed to load.
+ */
 bool Skybox::loadCubemap(const std::vector<std::string>& faces) {
     if (!cubemap.loadFromFiles(faces)) {
         return false;
@@ -142,6 +195,21 @@ bool Skybox::loadCubemap(const std::vector<std::string>& faces) {
     return true;
 }
 
+/**
+ * @brief Renders the skybox around the scene.
+ *
+ * The depth function is temporarily changed to GL_LEQUAL so the skybox
+ * passes depth testing at the maximum depth value (1.0) without being
+ * clipped by objects already in the depth buffer.
+ *
+ * The translation component is stripped from the view matrix by converting
+ * it to a 3×3 rotation matrix and back to a 4×4. This keeps the skybox
+ * centred on the camera so it appears infinitely far away regardless of
+ * camera position.
+ *
+ * @param view       The camera view matrix (translation will be stripped internally).
+ * @param projection The camera projection matrix.
+ */
 void Skybox::draw(const glm::mat4& view, const glm::mat4& projection) {
     // Change depth function so skybox is drawn at max depth
     glDepthFunc(GL_LEQUAL);
@@ -167,6 +235,12 @@ void Skybox::draw(const glm::mat4& view, const glm::mat4& projection) {
     glDepthFunc(GL_LESS);
 }
 
+/**
+ * @brief Deletes the VAO, VBO, shader program and cubemap texture from the GPU.
+ *
+ * Safe to call multiple times — zero handles are checked before deletion.
+ * Called automatically by the destructor.
+ */
 void Skybox::cleanup() {
     if (VAO != 0) {
         glDeleteVertexArrays(1, &VAO);

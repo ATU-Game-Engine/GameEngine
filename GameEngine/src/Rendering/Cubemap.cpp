@@ -2,13 +2,29 @@
 #include "../external/stb/stb_image.h"
 #include <iostream>
 
+/**
+ * @brief Default constructor. Initialises all members to zero/empty state.
+ *
+ * No GPU resources are allocated until loadFromFiles() is called.
+ */
 Cubemap::Cubemap() : textureID(0), width(0), height(0) {
 }
 
+/**
+ * @brief Destructor. Releases the OpenGL cubemap texture if one was created.
+ */
 Cubemap::~Cubemap() {
     cleanup();
 }
 
+/**
+ * @brief Move constructor. Transfers ownership of the GPU texture from another Cubemap.
+ *
+ * The source object is left in a valid but empty state (textureID = 0) so its
+ * destructor does not double-free the GPU resource.
+ *
+ * @param other The Cubemap to move from.
+ */
 Cubemap::Cubemap(Cubemap&& other) noexcept
     : textureID(other.textureID), width(other.width), height(other.height) {
     other.textureID = 0;
@@ -16,6 +32,15 @@ Cubemap::Cubemap(Cubemap&& other) noexcept
     other.height = 0;
 }
 
+/**
+ * @brief Move assignment operator. Transfers ownership of the GPU texture.
+ *
+ * Cleans up any existing GPU resource before taking ownership of the other
+ * object's texture. The source is left in an empty state.
+ *
+ * @param other The Cubemap to move from.
+ * @return Reference to this Cubemap.
+ */
 Cubemap& Cubemap::operator=(Cubemap&& other) noexcept {
     if (this != &other) {
         cleanup();
@@ -29,6 +54,25 @@ Cubemap& Cubemap::operator=(Cubemap&& other) noexcept {
     return *this;
 }
 
+/**
+ * @brief Loads six face images from disk and uploads them to a GPU cubemap texture.
+ *
+ * Faces must be provided in the standard OpenGL order:
+ *   0 = +X (right), 1 = -X (left), 2 = +Y (top),
+ *   3 = -Y (bottom), 4 = +Z (front), 5 = -Z (back)
+ *
+ * Vertical flipping is disabled for cubemap faces because the OpenGL cubemap
+ * coordinate system expects the images to be unflipped.
+ *
+ * Texture filtering is set to GL_LINEAR on both minification and magnification.
+ * All three wrap modes (S, T, R) are set to GL_CLAMP_TO_EDGE to prevent seams
+ * at cubemap face boundaries.
+ *
+ * @param faces Vector of exactly 6 file paths, one per cubemap face.
+ * @return true  if all 6 faces were loaded and uploaded successfully.
+ * @return false if the vector does not contain exactly 6 paths, or if any
+ *               image file fails to load (GPU resources are cleaned up on failure).
+ */
 bool Cubemap::loadFromFiles(const std::vector<std::string>& faces) {
     if (faces.size() != 6) {
         std::cerr << "ERROR::CUBEMAP: Must provide exactly 6 face textures" << std::endl;
@@ -85,15 +129,29 @@ bool Cubemap::loadFromFiles(const std::vector<std::string>& faces) {
     return true;
 }
 
+/**
+ * @brief Binds the cubemap texture to the specified texture unit.
+ *
+ * @param slot Texture unit index (0-based). The cubemap is bound to GL_TEXTURE0 + slot.
+ */
 void Cubemap::bind(unsigned int slot) const {
     glActiveTexture(GL_TEXTURE0 + slot);
     glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
 }
 
+/**
+ * @brief Unbinds any cubemap texture from GL_TEXTURE_CUBE_MAP target.
+ */
 void Cubemap::unbind() const {
     glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 }
 
+/**
+ * @brief Deletes the OpenGL cubemap texture and resets the ID to zero.
+ *
+ * Safe to call multiple times — subsequent calls are no-ops if the texture
+ * has already been deleted.
+ */
 void Cubemap::cleanup() {
     if (textureID != 0) {
         glDeleteTextures(1, &textureID);

@@ -4,13 +4,25 @@
 #include <fstream>
 #include <sstream>
 
+/**
+ * @brief Default constructor. No GPU resources are allocated at construction time.
+ */
 ShaderManager::ShaderManager() {
 }
 
+/**
+ * @brief Destructor. Deletes all compiled shader programs from the GPU.
+ */
 ShaderManager::~ShaderManager() {
     cleanup();
 }
 
+/**
+ * @brief Reads a GLSL shader source file from disk into a string.
+ *
+ * @param filepath Path to the shader source file (e.g. "shaders/basic.vert").
+ * @return std::string The full shader source as a string, or empty string on failure.
+ */
 std::string ShaderManager::loadShaderSource(const std::string& filepath) {
     std::ifstream file(filepath);
 
@@ -27,6 +39,18 @@ std::string ShaderManager::loadShaderSource(const std::string& filepath) {
     return buffer.str();
 }
 
+/**
+ * @brief Compiles a single GLSL shader stage from source.
+ *
+ * Creates an OpenGL shader object of the given type, uploads the source and
+ * compiles it. Compilation errors are printed to stdout with the driver's
+ * info log but do not throw — the caller receives the (possibly invalid)
+ * shader ID and should check for link errors at the program stage.
+ *
+ * @param type   GL_VERTEX_SHADER or GL_FRAGMENT_SHADER.
+ * @param source Null-terminated GLSL source string.
+ * @return unsigned int OpenGL shader object ID.
+ */
 unsigned int ShaderManager::compileShader(unsigned int type, const char* source) {
     unsigned int shader = glCreateShader(type);
     glShaderSource(shader, 1, &source, NULL);
@@ -43,6 +67,19 @@ unsigned int ShaderManager::compileShader(unsigned int type, const char* source)
     return shader;
 }
 
+/**
+ * @brief Loads, compiles and links a vertex + fragment shader pair into a program.
+ *
+ * The compiled shader objects are deleted immediately after linking since they
+ * are no longer needed once the program is on the GPU. The resulting program
+ * ID is stored in the internal map under the given name and can be retrieved
+ * with getProgram().
+ *
+ * @param vertPath Path to the vertex shader source file.
+ * @param fragPath Path to the fragment shader source file.
+ * @param name     Key used to retrieve the program later via getProgram().
+ * @return unsigned int The linked OpenGL program ID, or 0 on failure.
+ */
 unsigned int ShaderManager::createProgram(const std::string& vertPath, const std::string& fragPath, const std::string& name) {
     // Load shader sources
     std::string vertexSource = loadShaderSource(vertPath);
@@ -86,6 +123,12 @@ unsigned int ShaderManager::createProgram(const std::string& vertPath, const std
     return program;
 }
 
+/**
+ * @brief Retrieves a previously created shader program by name.
+ *
+ * @param name The name the program was registered under in createProgram().
+ * @return unsigned int The OpenGL program ID, or 0 if the name is not found.
+ */
 unsigned int ShaderManager::getProgram(const std::string& name) {
     auto it = shaderPrograms.find(name);
     if (it != shaderPrograms.end()) {
@@ -95,6 +138,12 @@ unsigned int ShaderManager::getProgram(const std::string& name) {
     return 0;
 }
 
+/**
+ * @brief Deletes all stored shader programs from the GPU and clears the map.
+ *
+ * Called automatically by the destructor. Safe to call manually if programs
+ * need to be released before the ShaderManager is destroyed.
+ */
 void ShaderManager::cleanup() {
     for (auto& pair : shaderPrograms) {
         glDeleteProgram(pair.second);
