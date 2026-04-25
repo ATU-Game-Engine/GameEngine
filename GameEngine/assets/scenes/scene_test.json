@@ -81,7 +81,7 @@
                 "lowerLimit": 0.0,
                 "motorMaxForce": 100.0,
                 "motorTargetVelocity": 1.5,
-                "upperLimit": 20.0,
+                "upperLimit": 23.0,
                 "useLimits": true,
                 "useMotor": true
             },
@@ -369,7 +369,7 @@
             "tags": [],
             "transform": {
                 "position": [
-                    -10.5,
+                    -12.152225494384766,
                     2.0,
                     -15.0
                 ],
@@ -380,7 +380,7 @@
                     1.0
                 ],
                 "scale": [
-                    21.0,
+                    17.0,
                     15.0,
                     1.0
                 ]
@@ -1252,10 +1252,10 @@
                     2.585526704788208
                 ],
                 "rotation": [
-                    1.4034834316685635e-35,
+                    1.403483718654489e-35,
                     0.9999752044677734,
-                    -1.6580894239550505e-34,
-                    0.007047839928418398
+                    -1.658089653543791e-34,
+                    0.0070478408597409725
                 ],
                 "scale": [
                     2.0,
@@ -1443,7 +1443,7 @@
                 0.0
             ],
             "forceMagnitude": 400.0,
-            "id": 10,
+            "id": 16,
             "maxUses": -1,
             "name": "Trigger_1",
             "position": [
@@ -1465,7 +1465,7 @@
             "behaviourTag": "sphere_spawner",
             "debugVisualize": true,
             "enabled": true,
-            "id": 11,
+            "id": 17,
             "maxUses": 1,
             "name": "Sphere_Spawner",
             "position": [
@@ -1487,7 +1487,7 @@
             "behaviourTag": "",
             "debugVisualize": true,
             "enabled": true,
-            "id": 12,
+            "id": 18,
             "maxUses": -1,
             "name": "Teleporter",
             "position": [

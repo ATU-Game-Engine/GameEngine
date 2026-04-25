@@ -1,6 +1,22 @@
-#include "../include/Scene/PhysicsComponent.h"
+﻿#include "../include/Scene/PhysicsComponent.h"
 #include "../include/Scene/TransformComponent.h"
 
+/**
+ * @brief Writes the physics simulation result back into the scene transform.
+ *
+ * Called once per frame after the Bullet physics step to keep the
+ * GameObject's visible transform in sync with where the simulation moved
+ * the rigid body. Position and rotation are both extracted from Bullet's
+ * motion state, which interpolates between physics ticks for smooth rendering.
+ *
+ * This should only ever flow physics → transform. To move an object
+ * by setting its transform directly (e.g. from the editor or a script),
+ * use syncFromTransform() instead.
+ *
+ * @param transform  The TransformComponent to overwrite with the
+ *                   rigid body's current world position and rotation.
+ *                   Scale is left untouched.
+ */
 void PhysicsComponent::syncToTransform(TransformComponent& transform) {
     if (!rigidBody) return;
 
@@ -17,6 +33,27 @@ void PhysicsComponent::syncToTransform(TransformComponent& transform) {
     transform.setRotation(glm::quat(rot.w(), rot.x(), rot.y(), rot.z()));
 }
 
+/**
+ * @brief Teleports the rigid body to match the current scene transform.
+ *
+ * Overrides the physics simulation state so the body's world position and
+ * rotation match the values stored in @p transform. Both the motion state
+ * and the rigid body itself are updated to prevent a one-frame lag where
+ * Bullet would still report the old position.
+ *
+ * The body is woken from sleep after the update so the change takes effect
+ * immediately — without this, a sleeping body would ignore the new transform
+ * until something else disturbed it.
+ *
+ * Typical use cases:
+ *   - Respawning or teleporting an object to a fixed spawn point.
+ *   - Dragging an object in the editor while the simulation is paused.
+ *   - Snapping a physics object to a waypoint at runtime.
+ *
+ * @param transform  The TransformComponent whose position and rotation will
+ *                   be written into the rigid body's world transform.
+ *                   Scale has no effect on the physics body.
+ */
 void PhysicsComponent::syncFromTransform(const TransformComponent& transform) {
     if (!rigidBody) return;
 

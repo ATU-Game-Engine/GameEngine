@@ -56,6 +56,7 @@
     <ClCompile Include="src\UI\LightingPanel.cpp" />
     <ClCompile Include="src\UI\SpawnPanel.cpp" />
     <ClCompile Include="src\UI\InspectorPanel.cpp" />
+    <ClCompile Include="src\Gameplay\EnemyAi.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="external\imgui\backends\imgui_impl_glfw.h" />
@@ -132,6 +133,7 @@
     <ClInclude Include="include\UI\InspectorPanel.h" />
     <ClInclude Include="include\Rendering\PointLight.h" />
     <ClInclude Include="include\Rendering\PointLightRegistry.h" />
+    <ClInclude Include="include\Gameplay\EnemyAi.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />

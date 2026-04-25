@@ -34,32 +34,6 @@ void SetupGameScene(Scene& scene, Camera& camera, Physics& physics)
 {
     // Ground
     scene.spawnObject(ShapeType::CUBE, glm::vec3(0, -0.25f, 0), glm::vec3(100.0f, 0.5f, 100.0f), 0.0f, "Default");
-
-    // Player
-    GameObject* player = scene.spawnObject(
-        ShapeType::CAPSULE,
-		glm::vec3(0.0f, 3.0f, 0.0f),// position
-		glm::vec3(0.5f, 1.0f, 0.5f),// size (radius, height, unused)
-        1.0f, "Default"
-    );
-    player->setName("Player");
-    player->getRigidBody()->setFriction(0.8f);
-    player->getRigidBody()->setRestitution(0.0f);
-    player->getRigidBody()->setContactProcessingThreshold(0.0f);
-    // script is now attached
-    // SetupScripts() registers "player" -> PlayerController, so adding this
-    // tag here fires the attachment immediately through wireTagCallback.
-    player->addTag("player");
-
-
-    auto& forceRegistry = ForceGeneratorRegistry::getInstance();
-    forceRegistry.createWind(
-        "wind_corridor",
-        glm::vec3(0.0f, 2.0f, 0.0f),  // center of the wind area
-        8.0f,                            // radius
-        glm::vec3(1.0f, 0.0f, 0.0f),    // direction (blowing toward +X)
-        100.0f                            // strength
-    );
 }
 
 /**
