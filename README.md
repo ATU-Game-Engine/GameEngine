@@ -102,35 +102,78 @@ This engine was developed as a Final Year Project for B.Sc. (Hons) Software Deve
 ## Build Instructions
 
 ### Prerequisites
-- CMake 3.15 or higher
-- Visual Studio 2022
-- vcpkg installed at `C:\vcpkg`
-
-### Steps
-
-1. Clone the repository:
-   `git clone https://github.com/ATU-Game-Engine/GameEngine`
-
-2. Open `GameEngine.sln` in Visual Studio 2022
-
-3. Open the **Terminal** in Visual Studio (View → Terminal)
-
-4. Navigate into the project folder:
-   `cd GameEngine`
-
-5. Configure the build:
-   `cmake -B build -DCMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows`
-
-6. Build the project:
-   `cmake --build build`
-
-7. Navigate to the executable:
-   `cd build/debug`
-
-8. Run the engine:
-   `.\GameEngine.exe`
+- [Visual Studio 2022](https://visualstudio.microsoft.com/) (with **Desktop development with C++** workload)
+- [CMake 4.2+](https://cmake.org/download/) — ensure it is added to your system PATH during installation
+- [vcpkg](https://vcpkg.io/) — install instructions below
 
 ---
+
+### 1. Install CMake
+1. Download the Windows installer from [cmake.org/download](https://cmake.org/download/)
+2. Run the installer and select **"Add CMake to the system PATH for all users"**
+3. Verify the installation:
+   ```
+   cmake --version
+   ```
+
+---
+
+### 2. Install vcpkg
+1. Open a terminal (PowerShell or Command Prompt) and run:
+   ```
+   git clone https://github.com/microsoft/vcpkg.git C:\vcpkg
+   cd C:\vcpkg
+   .\bootstrap-vcpkg.bat
+   ```
+2. Integrate vcpkg with Visual Studio:
+   ```
+   .\vcpkg integrate install
+   ```
+
+---
+
+### 3. Install Dependencies
+Install all required libraries for the 64-bit Windows target:
+```
+C:\vcpkg\vcpkg install bullet3:x64-windows
+C:\vcpkg\vcpkg install glfw3:x64-windows
+C:\vcpkg\vcpkg install glm:x64-windows
+C:\vcpkg\vcpkg install glew:x64-windows
+```
+> OpenGL is provided automatically by Windows/Visual Studio and does not need to be installed via vcpkg.
+
+---
+
+### 4. Clone the Repository
+```
+git clone https://github.com/ATU-Game-Engine/GameEngine
+cd GameEngine
+```
+
+---
+
+### 5. Configure the Build
+```
+cmake -B build -DCMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows
+```
+
+---
+
+### 6. Build the Project
+```
+cmake --build build
+```
+
+---
+
+### 7. Run the Engine
+```
+cd build\Debug
+.\GameEngine.exe
+```
+
+---
+
 
 ## License
 
