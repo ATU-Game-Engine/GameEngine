@@ -1,5 +1,28 @@
 #version 330 core
 
+/**
+ * @file basic.frag
+ * @brief Main scene fragment shader implementing Phong lighting with shadows,
+ *        normal mapping, specular mapping and triplanar texture projection.
+ *
+ * Lighting model:
+ *   - One directional light with PCF shadow mapping (3x3 kernel)
+ *   - Up to 16 point lights with smoothstep distance attenuation
+ *   - Phong specular (shininess = 32) for both directional and point lights
+ *
+ * Texture sampling:
+ *   - Triplanar world-space projection for diffuse and normal map sampling,
+ *     eliminating UV stretching on non-uniformly scaled objects.
+ *   - Blend weights derived from the surface normal raised to the power of 4
+ *     to produce sharp, seam-free transitions between projection axes.
+ *
+ * Special cases:
+ *   - objectColor = (0,0,0) triggers an early-out returning solid black,
+ *     used by the wireframe outline pass.
+ *   - uIsSelected blends the result toward uHighlightColor for editor selection.
+ *   - objectAlpha drives the output alpha for camera occlusion fading.
+ */
+
 out vec4 FragColor;
 
 in vec3 FragPos;    // From vertex shader
@@ -35,7 +58,23 @@ uniform bool uIsSelected;
 uniform vec3 uHighlightColor;
 uniform float uHighlightStrength;
 
-// Shadow calculation function
+/**
+ * @brief Calculates the shadow factor for the current fragment using PCF.
+ *
+ * Transforms the fragment's light-space position to shadow map UV coordinates
+ * via perspective divide and remapping from [-1,1] to [0,1]. Samples a 3x3
+ * neighbourhood of depth texels and averages the results to produce soft
+ * shadow edges (Percentage Closer Filtering).
+ *
+ * A small constant bias of 0.005 is subtracted from the current depth before
+ * comparison to prevent shadow acne caused by self-shadowing precision errors.
+ *
+ * Fragments outside the shadow map boundary (projCoords.z > 1.0) are treated
+ * as fully lit since they lie beyond the light frustum.
+ *
+ * @param fragPosLightSpace Fragment position transformed by the light space matrix.
+ * @return float Shadow factor in [0, 1]. 0.0 = fully lit, 1.0 = fully shadowed.
+ */
 float ShadowCalculation(vec4 fragPosLightSpace)
 {
     // Perspective divide
@@ -123,7 +162,7 @@ void main()
         baseColor = objectColor;
     }
     
-
+    // DIrectional light calculations
     float ambientStrength = 0.3;
     vec3 ambient = ambientStrength * lightColor;
 
@@ -165,6 +204,7 @@ void main()
         lighting += attenuation * (diffPt + specularStrength * specPt) * pointLightColours[i];
     }
 
+    // Final Output
     vec3 result = lighting * baseColor;
 
     // Apply selection tint

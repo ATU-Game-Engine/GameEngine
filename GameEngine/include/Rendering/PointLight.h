@@ -45,4 +45,4 @@ public:
     void setEnabled(bool e) { enabled = e; }
 };
 
-#endif // POINT_LIGHT_H
+#endif

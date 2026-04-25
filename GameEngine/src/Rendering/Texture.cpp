@@ -1,16 +1,31 @@
-#include "../include/Rendering/Texture.h"
+﻿#include "../include/Rendering/Texture.h"
 #include "../external/stb/stb_image.h"
 #include <iostream>
 
+/**
+ * @brief Default constructor. Initialises all members to zero.
+ *
+ * No GPU resources are allocated until loadFromFile() is called.
+ */
 Texture::Texture()
     : textureID(0), width(0), height(0), channels(0) {
 }
 
+/**
+ * @brief Destructor. Releases the OpenGL texture if one was allocated.
+ */
 Texture::~Texture() {
     cleanup();
 }
 
-// Move Constructor
+/**
+*@brief Move constructor.Transfers GPU texture ownership from another Texture.
+*
+* The source object is left with a zero textureID so its destructor does not
+*double - free the GPU resource.
+*
+*@param other The Texture to move from.
+*/
 Texture::Texture(Texture&& other) noexcept
 	: textureID(other.textureID), // Transfer ownership
 	width(other.width), // Copy width
@@ -22,7 +37,13 @@ Texture::Texture(Texture&& other) noexcept
 	other.channels = 0;
 }
 
-// Move Assignment
+/**
+ * @brief Move assignment operator. Releases existing GPU resource then
+ *        transfers ownership from another Texture.
+ *
+ * @param other The Texture to move from.
+ * @return Reference to this Texture.
+ */
 Texture& Texture::operator=(Texture&& other) noexcept {
     if (this != &other) {
         cleanup();
@@ -41,6 +62,29 @@ Texture& Texture::operator=(Texture&& other) noexcept {
     return *this;
 }
 
+/**
+ * @brief Loads an image from disk and uploads it as an OpenGL 2D texture.
+ *
+ * Uses stb_image to decode the file. The image is flipped vertically on load
+ * because OpenGL expects the origin at the bottom-left while most image
+ * formats store rows top-to-bottom.
+ *
+ * Texture parameters:
+ * - Wrap S/T: GL_REPEAT — UVs outside [0,1] tile the texture.
+ * - Minification: GL_LINEAR_MIPMAP_LINEAR — trilinear filtering using
+ *   pre-computed mipmaps for smooth appearance at distance.
+ * - Magnification: GL_LINEAR — bilinear interpolation when the texture is
+ *   stretched over a larger screen area.
+ *
+ * Format is selected automatically based on the number of channels:
+ *   1 channel → GL_RED, 3 channels → GL_RGB, 4 channels → GL_RGBA.
+ *
+ * CPU pixel data is freed immediately after uploading to the GPU.
+ *
+ * @param filepath Path to the image file (JPG, PNG, BMP, TGA etc.)
+ * @return true  if the image loaded and uploaded successfully.
+ * @return false if stb_image failed to decode the file.
+ */
 bool Texture::loadFromFile(const std::string& filepath) {
     // Flip texture vertically (OpenGL expects bottom-left origin)
     stbi_set_flip_vertically_on_load(true);
@@ -95,15 +139,31 @@ bool Texture::loadFromFile(const std::string& filepath) {
     return true;
 }
 
+/**
+ * @brief Binds the texture to the specified texture unit.
+ *
+ * @param slot Zero-based texture unit index. The texture is bound to
+ *             GL_TEXTURE0 + slot.
+ */
 void Texture::bind(unsigned int slot) const {
     glActiveTexture(GL_TEXTURE0 + slot);
     glBindTexture(GL_TEXTURE_2D, textureID);
 }
 
+/**
+ * @brief Unbinds any 2D texture from the currently active texture unit.
+ */
 void Texture::unbind() const {
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
+/**
+ * @brief Deletes the OpenGL texture and resets the ID to zero.
+ *
+ * Safe to call multiple times — the check on textureID != 0 prevents
+ * double-deletion. Called automatically by the destructor and move
+ * assignment operator.
+ */
 void Texture::cleanup() {
     if (textureID != 0) {
         glDeleteTextures(1, &textureID);

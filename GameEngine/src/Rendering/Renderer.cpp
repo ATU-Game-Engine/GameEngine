@@ -16,6 +16,13 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <GLFW/glfw3.h>
 
+/**
+ * @brief Constructs the Renderer with default settings.
+ *
+ * Initialises the shadow map at 4096x4096 resolution, sets the default
+ * directional light direction and intensity, and disables skybox and
+ * debug physics visualisation.
+ */
 Renderer::Renderer() : shadowMap(4096, 4096), skyboxEnabled(false), debugPhysicsEnabled(false) {
 	mainLight.setDirection(glm::vec3(0.3f, -1.0f, 0.5f));
 	mainLight.setIntensity(0.8f);
@@ -24,6 +31,16 @@ Renderer::Renderer() : shadowMap(4096, 4096), skyboxEnabled(false), debugPhysics
 Renderer::~Renderer() {
 }
 
+/**
+ * @brief Initialises all GPU resources required by the renderer.
+ *
+ * Creates the main and shadow shader programs, initialises the shadow map
+ * framebuffer, and generates the primitive meshes (cube, sphere, cylinder)
+ * used as fallback geometry and for debug visualisation.
+ *
+ * Must be called once after an OpenGL context has been created, before
+ * any draw calls are issued.
+ */
 void Renderer::initialize() {
 	// Create shader programs
 	shaderManager.createProgram("shaders/basic.vert", "shaders/basic.frag", "main");
@@ -36,6 +53,16 @@ void Renderer::initialize() {
 	cylinderMesh = MeshFactory::createCylinder();
 }
 
+/**
+ * @brief Loads a cubemap skybox from six face image files.
+ *
+ * Delegates to Skybox::loadCubemap(). If loading succeeds, the skybox
+ * is enabled and will be drawn at the start of each frame.
+ *
+ * @param faces Six image paths in the order: +X, -X, +Y, -Y, +Z, -Z.
+ * @return true  if the cubemap loaded successfully.
+ * @return false if any face image failed to load.
+ */
 bool Renderer::loadSkybox(const std::vector<std::string>& faces) {
 	if (skybox.loadCubemap(faces)) {
 		skyboxEnabled = true;
@@ -44,6 +71,21 @@ bool Renderer::loadSkybox(const std::vector<std::string>& faces) {
 	return false;
 }
 
+/**
+ * @brief Renders the scene from the directional light's perspective to generate shadow depth data.
+ *
+ * Binds the shadow map FBO, activates the shadow depth shader and renders
+ * every object's geometry. Only depth values are written — no colour output
+ * is produced. The resulting depth texture is used in the main pass to
+ * determine whether fragments are in shadow via PCF sampling.
+ *
+ * The light space matrix is computed from a fixed scene centre and radius.
+ * For best shadow coverage, sceneRadius should encompass the playable area.
+ *
+ * @param camera  The active camera (currently unused in the shadow pass but
+ *                kept for future view-dependent shadow techniques).
+ * @param objects All scene objects to cast shadows.
+ */
 void Renderer::renderShadowPass(
 	const Camera& camera,
 	const std::vector<std::unique_ptr<GameObject>>& objects)
@@ -85,6 +127,23 @@ void Renderer::renderShadowPass(
 	shadowMap.unbind();
 }
 
+/**
+ * @brief Draws a single GameObject using the main shader.
+ *
+ * Uploads the model matrix and all texture/material uniforms for the object,
+ * then issues a draw call. Handles three texture channels:
+ *   - Diffuse texture (unit 0) — or flat objectColor if no texture assigned
+ *   - Specular map   (unit 2) — controls per-texel specular intensity
+ *   - Normal map     (unit 3) — always assigned to prevent sampler conflicts
+ *
+ * The UV tiling uniform is set to (1, 1, 1) and triplanar world-space
+ * sampling is performed in the fragment shader. Alpha is read from the
+ * objectAlphas map — opaque (1.0) by default, reduced for occluding objects.
+ *
+ * @param obj      The game object to draw.
+ * @param modelLoc OpenGL uniform location of the model matrix in the shader.
+ * @param colorLoc OpenGL uniform location of the objectColor uniform.
+ */
 void Renderer::drawGameObject(const GameObject& obj, int modelLoc, int colorLoc) {
 	glm::mat4 model = Transform::model(
 		obj.getPosition(),
@@ -192,6 +251,27 @@ void Renderer::drawGameObject(const GameObject& obj, int modelLoc, int colorLoc)
 	}
 }
 
+/**
+ * @brief Renders the full scene in two passes: opaque then transparent.
+ *
+ * Shadow pass runs first to populate the depth texture. The main pass then:
+ *   1. Draws the skybox at maximum depth.
+ *   2. Uploads view, projection, lighting and shadow uniforms.
+ *   3. Pass 1 — draws all fully opaque objects (alpha >= 1.0) with depth writes enabled.
+ *   4. Pass 2 — draws all transparent objects (alpha < 1.0) with depth writes disabled
+ *               so they blend correctly over the opaque geometry.
+ *
+ * Alpha blend is enabled globally so transparent objects composite correctly.
+ * The two-pass approach avoids depth artefacts where transparent objects
+ * would occlude each other or underlying opaque geometry incorrectly.
+ *
+ * @param windowWidth     Framebuffer width in pixels.
+ * @param windowHeight    Framebuffer height in pixels.
+ * @param camera          Active camera providing view and projection matrices.
+ * @param objects         All scene objects to render.
+ * @param primarySelection The single object to draw an outline around, or nullptr.
+ * @param selectedObjects  All selected objects for cyan highlight tinting.
+ */
 void Renderer::draw(int windowWidth,
 	int windowHeight,
 	const Camera& camera,
@@ -293,8 +373,18 @@ void Renderer::draw(int windowWidth,
 	glDepthMask(GL_TRUE);
 }
 
-// Draws a black wire overlay on top of the object (if mesh has edge indices).
-// Does NOT change your friend's base draw code.
+/**
+ * @brief Draws a black wireframe overlay on the primary selected object.
+ *
+ * Uses polygon offset to push the wireframe slightly in front of the filled
+ * geometry so it is visible without z-fighting. The object colour is forced
+ * to black to match the edge-draw path in the fragment shader. Renders in
+ * GL_LINE mode over the object's render mesh.
+ *
+ * @param obj      The object to outline.
+ * @param modelLoc OpenGL uniform location of the model matrix.
+ * @param colorLoc OpenGL uniform location of the objectColor uniform.
+ */
 void Renderer::drawOutlineOnly(const GameObject& obj, int modelLoc, int colorLoc)
 {
 	// Build model matrix
@@ -322,6 +412,18 @@ void Renderer::drawOutlineOnly(const GameObject& obj, int modelLoc, int colorLoc
 	glDisable(GL_POLYGON_OFFSET_LINE);
 }
 
+/**
+ * @brief Draws the physics collision shape for an object as a cyan wireframe.
+ *
+ * Only active when debug physics visualisation is enabled (V key toggle).
+ * For box shapes, reads the actual Bullet half-extents so the wireframe
+ * matches the collision boundary exactly, including any physicsScale offset.
+ * Depth testing is disabled so the wireframe is always visible through geometry.
+ *
+ * @param obj      The object whose collision shape to visualise.
+ * @param modelLoc OpenGL uniform location of the model matrix.
+ * @param colorLoc OpenGL uniform location of the objectColor uniform.
+ */
 void Renderer::drawDebugCollisionShape(const GameObject& obj, int modelLoc, int colorLoc) {
 	glm::vec3 debugScale = obj.getScale();
 
@@ -389,6 +491,19 @@ void Renderer::drawDebugCollisionShape(const GameObject& obj, int modelLoc, int 
 	glEnable(GL_DEPTH_TEST);
 }
 
+/**
+ * @brief Draws wireframe boxes representing all active trigger volumes.
+ *
+ * Only renders when debug physics visualisation is enabled. Colour codes
+ * triggers by type: yellow = TELEPORT, green = SPEED_ZONE, white = other.
+ * Trigger size is stored as half-extents so the scale is multiplied by 2
+ * to produce the correct world-space bounding box size.
+ *
+ * @param triggers All triggers to visualise.
+ * @param camera   Active camera for view/projection matrices.
+ * @param fbW      Framebuffer width — guards against zero aspect ratio.
+ * @param fbH      Framebuffer height — guards against zero aspect ratio.
+ */
 void Renderer::drawTriggerDebug(const std::vector<Trigger*>& triggers, const Camera& camera, int fbW, int fbH)
 {
 
@@ -439,6 +554,24 @@ void Renderer::drawTriggerDebug(const std::vector<Trigger*>& triggers, const Cam
 	glUniform3fv(lightColorLoc, 1, &mainLight.getFinalColor()[0]);
 }
 
+/**
+ * @brief Draws custom wireframe visualisations for all active force generators.
+ *
+ * Only renders when debug physics visualisation is enabled. Each generator
+ * type has a distinct visual representation:
+ *   - WIND:         Light blue sphere boundary + directional arrows
+ *   - GRAVITY_WELL: Purple concentric rings showing force gradient
+ *   - VORTEX:       Orange axis line + tapering horizontal rings
+ *   - EXPLOSION:    Red sphere boundary + radial arrow spikes
+ *
+ * Uses a temporary per-frame VAO/VBO for dynamic line drawing rather than
+ * pre-baked geometry, since generator positions and radii change at runtime.
+ *
+ * @param generators All force generators to visualise.
+ * @param camera     Active camera for view/projection matrices.
+ * @param fbW        Framebuffer width.
+ * @param fbH        Framebuffer height.
+ */
 void Renderer::drawForceGeneratorDebug(const std::vector<ForceGenerator*>& generators, const Camera& camera, int fbW, int fbH)
 {
 	if (!debugPhysicsEnabled) return;
@@ -646,6 +779,19 @@ void Renderer::drawForceGeneratorDebug(const std::vector<ForceGenerator*>& gener
 	glUniform3fv(lightColorLoc, 1, &mainLight.getFinalColor()[0]);
 }
 
+/**
+ * @brief Draws a small wireframe sphere at each point light's world position.
+ *
+ * Only renders when debug physics visualisation is enabled. The sphere is
+ * drawn at unit scale (radius 1) regardless of the light's influence radius
+ * so it acts as a visible click target in the editor rather than showing
+ * the full influence volume. The sphere colour matches the light's own colour.
+ *
+ * @param lights All point lights to visualise.
+ * @param camera Active camera for view/projection matrices.
+ * @param fbW    Framebuffer width.
+ * @param fbH    Framebuffer height.
+ */
 void Renderer::drawPointLightDebug(const std::vector<PointLight*>& lights, const Camera& camera, int fbW, int fbH)
 {
 	if (!debugPhysicsEnabled) return;
@@ -692,6 +838,25 @@ void Renderer::drawPointLightDebug(const std::vector<PointLight*>& lights, const
 	glUniform3fv(lightColorLoc, 1, &mainLight.getFinalColor()[0]);
 }
 
+/**
+ * @brief Draws lines and markers visualising all active physics constraints.
+ *
+ * Only renders when debug physics visualisation is enabled. Each constraint
+ * type has a distinct colour and additional geometry:
+ *   - FIXED:        Purple line between pivot points
+ *   - HINGE:        Pink line + thick axis indicator at the pivot
+ *   - SLIDER:       Teal dashed line + bright axis line showing slide direction
+ *   - SPRING:       Lime zigzag coil between pivot points
+ *   - GENERIC_6DOF: Indigo line between pivot points
+ *
+ * Broken constraints are drawn at 30% brightness. Thin lines from each body
+ * centre to its pivot point are drawn at reduced brightness to show offset.
+ *
+ * @param constraints All constraints to visualise.
+ * @param camera      Active camera for view/projection matrices.
+ * @param fbW         Framebuffer width.
+ * @param fbH         Framebuffer height.
+ */
 void Renderer::drawConstraintDebug(const std::vector<Constraint*>& constraints,const Camera& camera,int fbW, int fbH)
 {
 	if (!debugPhysicsEnabled) return;
@@ -880,6 +1045,20 @@ void Renderer::drawConstraintDebug(const std::vector<Constraint*>& constraints,c
 	glUniform3fv(lightColorLoc, 1, &mainLight.getFinalColor()[0]);
 }
 
+/**
+ * @brief Uploads all enabled point light data to the main shader.
+ *
+ * Iterates the provided light list and uploads position, colour, intensity
+ * and radius for each enabled light into the shader's array uniforms. A
+ * maximum of 16 lights are uploaded (matching MAX_POINT_LIGHTS in the shader).
+ * The numPointLights uniform is set to the actual count so the shader loop
+ * terminates correctly.
+ *
+ * Called once per frame after all draw calls so the uniforms are set
+ * correctly for the next frame's main pass.
+ *
+ * @param lights All registered point lights (disabled lights are skipped).
+ */
 void Renderer::uploadPointLights(const std::vector<PointLight*>& lights)
 {
 	unsigned int mainShader = shaderManager.getProgram("main");
@@ -902,6 +1081,12 @@ void Renderer::uploadPointLights(const std::vector<PointLight*>& lights)
 	glUniform1i(glGetUniformLocation(mainShader, "numPointLights"), count);
 }
 
+/**
+ * @brief Releases all GPU resources owned by the renderer.
+ *
+ * Cleans up the cube mesh, skybox, shadow map, texture cache and shader
+ * programs. Called automatically on application shutdown.
+ */
 void Renderer::cleanup() {
 	std::cout << "Cleaning up renderer..." << std::endl;
 	cubeMesh.cleanup();

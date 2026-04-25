@@ -1,5 +1,26 @@
 #version 330 core
 
+/**
+ * @file basic.vert
+ * @brief Main scene vertex shader. Transforms geometry into world, light and
+ *        clip space and constructs the TBN matrix for normal mapping.
+ *
+ * Vertex format (14 floats, matches Mesh::setData layout):
+ *   Location 0 — Position   (vec3)
+ *   Location 1 — Normal     (vec3)
+ *   Location 2 — TexCoord   (vec2)
+ *   Location 3 — Tangent    (vec3)
+ *   Location 4 — Bitangent  (vec3)
+ *
+ * Outputs passed to basic.frag:
+ *   FragPos           — World-space position for lighting calculations.
+ *   Normal            — World-space normal (corrected for non-uniform scale).
+ *   TexCoord          — UV coordinates scaled by uvTiling for texture repetition.
+ *   FragPosLightSpace — Position in light clip space for shadow map lookup.
+ *   TBN               — Tangent-space to world-space rotation matrix for
+ *                       transforming normal map samples.
+ */
+
 layout (location = 0) in vec3 aPos;      // Position
 layout (location = 1) in vec3 aNormal;   // Normal
 layout (location = 2) in vec2 aTexCoord; // Texture Coordinate
