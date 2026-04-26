@@ -1,0 +1,103 @@
+{
+    "constraints": [],
+    "directionalLight": {
+        "colour": [
+            1.0,
+            1.0,
+            1.0
+        ],
+        "direction": [
+            0.2591605484485626,
+            -0.8638684153556824,
+            0.4319342076778412
+        ],
+        "intensity": 0.800000011920929
+    },
+    "forceGenerators": [],
+    "objects": [
+        {
+            "id": 1,
+            "name": "",
+            "physics": {
+                "enabled": true,
+                "mass": 0.0,
+                "material": "Default",
+                "physicsScale": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "render": {
+                "modelPath": "",
+                "normal": "",
+                "specular": "",
+                "texture": "textures\\wood1.jpg"
+            },
+            "shape": 0,
+            "tags": [],
+            "transform": {
+                "position": [
+                    0.0,
+                    -0.25,
+                    0.0
+                ],
+                "rotation": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0
+                ],
+                "scale": [
+                    100.0,
+                    0.5,
+                    100.0
+                ]
+            }
+        },
+        {
+            "id": 2,
+            "name": "Cube_2",
+            "physics": {
+                "enabled": true,
+                "mass": 1.0,
+                "material": "Concrete",
+                "physicsScale": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "render": {
+                "modelPath": "",
+                "normal": "",
+                "specular": "",
+                "texture": ""
+            },
+            "shape": 0,
+            "tags": [
+                "player"
+            ],
+            "transform": {
+                "position": [
+                    0.40256720781326294,
+                    0.49999988079071045,
+                    -47.272666931152344
+                ],
+                "rotation": [
+                    4.632620065336823e-09,
+                    0.03609127923846245,
+                    -2.465604040935432e-07,
+                    0.9993484616279602
+                ],
+                "scale": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
+        }
+    ],
+    "pointLights": [],
+    "triggers": []
+}

@@ -343,7 +343,7 @@ int Start(void)
 
             std::cout << "Mode: TEST" << std::endl;
 
-            for (int i = 0; i < 750; i++)
+            for (int i = 0; i < 500; i++)
             {
                 GameObject* obj = scene.spawnObject(
                     ShapeType::CUBE,
